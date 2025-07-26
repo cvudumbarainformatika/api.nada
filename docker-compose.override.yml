@@ -1,0 +1,20 @@
+services:
+  app:
+    ports:
+      - "6003:6003" # WebSocket
+      - "8000:8000" # Swoole
+    
+
+  nginx:
+    ports:
+      - "8080:80"
+  
+  redis:
+    ports:
+      - "6379:6379"
+  
+  redis-commander:
+    ports:
+      - "8081:8081"
+
+  

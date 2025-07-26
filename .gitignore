@@ -1,0 +1,52 @@
+/node_modules
+/public/hot
+/public/storage
+/public/.htaccess
+/vendor
+.env
+.env.backup
+.env.11
+.env.200
+.phpunit.result.cache
+# docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+
+# Ignore Mac DS_Store files
+.DS_Store
+**/.DS_Store
+
+# Ignore all storage content
+storage/*
+
+# Ignore specific log files
+/storage/logs/*.log
+/storage/logs/websockets.log
+/storage/logs/laravel.log
+
+storage/framework
+/storage/framework
+
+# Keep .gitignore files
+!/storage/.gitignore
+!/storage/app/.gitignore
+!/storage/framework/.gitignore
+!/storage/framework/cache/.gitignore
+!/storage/framework/cache/data/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/views/.gitignore
+!/storage/logs/.gitignore
+
+# Keep directory structure
+#!/storage/app/
+#!/storage/app/public/
+#!/storage/framework/
+#!/storage/framework/cache/
+#!/storage/framework/cache/data/
+#!/storage/framework/sessions/
+#!/storage/framework/views/
+#!/storage/logs/

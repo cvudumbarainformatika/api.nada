@@ -1,0 +1,73 @@
+version: '3'
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        user: laravel
+        uid: 1000
+        gid: 1000
+    container_name: laravel-app
+    restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - "39302:6003" # WebSocket
+      - "39301:8000" # Swoole
+    volumes:
+      - ./:/var/www
+    environment:
+      - COMPOSER_ALLOW_SUPERUSER=1
+    networks:
+      - app-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravel-nginx
+    restart: unless-stopped
+    ports:
+      - "39303:80"
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: laravel-redis
+    restart: unless-stopped
+    ports:
+      - "39304:6379"
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-commander:
+    image: ghcr.io/joeferner/redis-commander:latest  # Gunakan image alternatif
+    container_name: redis-commander
+    restart: unless-stopped
+    ports:
+      - "39305:8081"
+    environment:
+      - REDIS_HOSTS=default-db0:redis:6379:0,laravel-cache:redis:6379:1,custom-db2:redis:6379:2
+    networks:
+      - app-network
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

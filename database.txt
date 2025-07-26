@@ -1,0 +1,2 @@
+tambah di rs51 field 'metode'
+tambah di rs49 field 'nilainormal', 'satuan'

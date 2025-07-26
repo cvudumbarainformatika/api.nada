@@ -1,0 +1,192 @@
+[
+  {
+    "id":1,
+    "kode": "makan",
+    "label": "Makan",
+    "categories": [
+      {
+        "label": "Tidak Mampu",
+        "skor": 0
+      },
+      {
+        "label": "Butuh Bantuan",
+        "skor": 1
+      },
+      {
+        "label": "Mandiri",
+        "skor": 2
+      }
+    ]
+  },
+  {
+    "id":2,
+    "kode": "mandi",
+    "label": "Mandi",
+    "categories": [
+      {
+        "label": "Harus dibantu",
+        "skor": 0
+      },
+      {
+        "label": "Mandiri",
+        "skor": 1
+      }
+    ]
+  },
+  {
+    "id":3,
+    "kode": "perawatanDiri",
+    "label": "Perawatan Diri",
+    "categories": [
+      {
+        "label": "Dibantu",
+        "skor": 0
+      },
+      {
+        "label": "Mandiri (Merawat muka, rambut, gigi)",
+        "skor": 1
+      }
+    ]
+  },
+  {
+    "id":4,
+    "kode": "berpakaian",
+    "label": "Berpakaian",
+    "categories": [
+      {
+        "label": "Harus dibantu",
+        "skor": 0
+      },
+      {
+        "label": "Dibantu Sebagian (Mengancingkan baju)",
+        "skor": 1
+      },
+      {
+        "label": "Mandiri",
+        "skor": 2
+      }
+    ]
+  },
+  {
+    "id":5,
+    "kode": "buangAirKcl",
+    "label": "Buang Air Kcl",
+    "categories": [
+      {
+        "label": "Inkontinensia atau pakai kateter dan tidak terkontrol",
+        "skor": 0
+      },
+      {
+        "label": "Kadang Inkontinensia (maks, 1x24 jam)",
+        "skor": 1
+      },
+      {
+        "label": "Kontinensia (teratur untuk lebih dari 7 hari)",
+        "skor": 2
+      }
+    ]
+  },
+  {
+    "id":6,
+    "kode": "buangAirBsr",
+    "label": "Buang Air Bsr",
+    "categories": [
+      {
+        "label": "Inkontinensia (tidak teratur atau perlu enema)",
+        "skor": 0
+      },
+      {
+        "label": "Kadang Inkontensia (sekali seminggu)",
+        "skor": 1
+      },
+      {
+        "label": "Kontinensia (teratur)",
+        "skor": 2
+      }
+    ]
+  },
+  {
+    "id":7,
+    "kode": "toilet",
+    "label": "Penggunaan Toilet",
+    "categories": [
+      {
+        "label": "Tergantung bantuan orang lain",
+        "skor": 0
+      },
+      {
+        "label": "Membutuhkan bantuan, tapi dapat melakukan beberapa hal sendiri",
+        "skor": 1
+      },
+      {
+        "label": "Mandiri",
+        "skor": 2
+      }
+    ]
+  },
+  {
+    "id":8,
+    "kode": "transfer",
+    "label": "Transfer",
+    "categories": [
+      {
+        "label": "Tidak mampu",
+        "skor": 0
+      },
+      {
+        "label": "Butuh bantuan untuk bisa duduk (2 orang)",
+        "skor": 1
+      },
+      {
+        "label": "Bantuan kecil (1 orang)",
+        "skor": 2
+      },
+      {
+        "label": "Mandiri",
+        "skor": 3
+      }
+    ]
+  },
+  {
+    "id":9,
+    "kode": "mobilitas",
+    "label": "Mobilitas",
+    "categories": [
+      {
+        "label": "Immobile (tidak mampu)",
+        "skor": 0
+      },
+      {
+        "label": "Menggunakan kursi roda",
+        "skor": 1
+      },
+      {
+        "label": "Berjalan dengan bantuan satu orang",
+        "skor": 2
+      },
+      {
+        "label": "Mandiri (meskipun menggunakan alat bantu seperti, tongkat)",
+        "skor": 3
+      }
+    ]
+  },
+  {
+    "id":10,
+    "kode": "ntTangga",
+    "label": "Naik Turun Tangga",
+    "categories": [
+      {
+        "label": "Tidak Mampu",
+        "skor": 0
+      },
+      {
+        "label": "Membutuhkan bantuan (alat bantu)",
+        "skor": 1
+      },
+      {
+        "label": "Mandiri",
+        "skor": 2
+      }
+    ]
+  }
+]
