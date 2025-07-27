@@ -116,6 +116,7 @@ class AuthController extends Controller
 
             $pegawai = Petugas::select('id', 'kdpegsimrs', 'kdgroupnakes', 'aktif', 'statusspesialis')
                 ->find($pegawaiId);
+            if (!$pegawai) throw new Exception('Pegawai Tidak ditemukan');
 
             $notifRkd = [
                 'notif' => 0,
