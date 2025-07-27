@@ -108,12 +108,12 @@ class AuthController extends Controller
                 Log::info('Cache miss - fetching fresh sistembayar data');
                 return Msistembayar::query()
                     ->select('rs1 as kode', 'rs2 as nama', 'rs9 as jenis', 'groups')
-                    ->where('hidden','!=','')
-                    ->where('rs1','!=','')
+                    ->where('hidden', '!=', '')
+                    ->where('rs1', '!=', '')
                     ->get();
             });
 
-            $pegawai = Petugas::select('id','kdpegsimrs','kdgroupnakes','aktif','statusspesialis')
+            $pegawai = Petugas::select('id', 'kdpegsimrs', 'kdgroupnakes', 'aktif', 'statusspesialis')
                 ->find($pegawaiId);
 
             $notifRkd = [
@@ -143,7 +143,7 @@ class AuthController extends Controller
                 }
             }
 
-            $git = Github::first();
+            // $git = Github::first();
 
             $result = [
                 'apps' => $apps,
@@ -151,7 +151,7 @@ class AuthController extends Controller
                 'user' => $user,
                 'mSistemBayar' => $masterSistemBayar,
                 'notifRkd' => $notifRkd,
-                'git' => $git,
+                // 'git' => $git,
             ];
 
             return new JsonResponse($result);
