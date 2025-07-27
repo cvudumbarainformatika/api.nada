@@ -62,6 +62,7 @@ class AuthController extends Controller
     {
         try {
             $me = auth()->user();
+            if (!$me) throw new Exception('User Tidak ditemukan');
             $pegawaiId = $me->pegawai_id;
             $cacheKey = 'account_' . $me->id;
 
