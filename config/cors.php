@@ -16,8 +16,14 @@ return [
     */
 
     'paths' => [
-        'api/*', 'geni/*', 'sanctum/csrf-cookie', 'api', '/templategambarpemeriksaanfisik/*',
-        'http:localhost:9000/*', 'http:192.168.101.80:9000/*', '/ttdpasien/*'
+        'api/*',
+        'geni/*',
+        'sanctum/csrf-cookie',
+        'api',
+        '/templategambarpemeriksaanfisik/*',
+        'http:localhost:9001/*',
+        'http://103.139.192.183*',
+        '/ttdpasien/*'
     ],
 
     'allowed_methods' => ['*'],
