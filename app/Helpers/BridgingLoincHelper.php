@@ -11,15 +11,14 @@ use LZCompressor\LZString;
 class BridgingLoincHelper
 {
     /**
-     * wawan 
+     * wawan
      */
-    public static function getLoincByKode($kode){
+    public static function getLoincByKode($kode)
+    {
         // $url = 'https://fhir.loinc.org/CodeSystem/$lookup?system=http://loinc.org&code='.$kode;
-        $url = 'https://loinc.regenstrief.org/searchapi/loincs?query='.$kode;
-        $response = Http::withBasicAuth('simrsudmohsaleh', 'Bismillah@1!')->acceptJson()->get($url);
-        
+        $url = 'https://loinc.regenstrief.org/searchapi/loincs?query=' . $kode;
+        $response = Http::withBasicAuth('user', 'password')->acceptJson()->get($url); // user dan password harusnya di env
+
         return json_decode($response, true);
     }
-
-
 }

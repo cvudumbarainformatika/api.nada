@@ -11,23 +11,25 @@ use LZCompressor\LZString;
 class BridgingSatsetHelper
 {
     /**
-     * wawan 
+     * wawan
      */
-    public static function root_url(){
+    public static function root_url()
+    {
         $url = 'https://api-satusehat.kemkes.go.id';
-        
-        return $url; 
+
+        return $url;
     }
 
-    public static function get_data_kfa($ext,$token, $params){
+    public static function get_data_kfa($ext, $token, $params)
+    {
 
-        
+
         // return self::root_url();
         $url = self::root_url() . $ext . $params;
         $response = Http::withToken($token)->get($url);
         $data = json_decode($response, true);
 
-        
+
         return $data;
         // JIKA ERROR
         $error = $data['resourceType'] === 'OperationOutcome';
@@ -46,7 +48,7 @@ class BridgingSatsetHelper
             $resp = SatsetErrorRespon::create($err);
 
             $send = [
-                'message' => 'failed' ,
+                'message' => 'failed',
                 'data' => $resp
             ];
             return $send;
@@ -88,7 +90,7 @@ class BridgingSatsetHelper
         }
     }
     /**
-     * wawan 
+     * wawan
      */
 
     public static function base_url()
@@ -96,15 +98,15 @@ class BridgingSatsetHelper
         $url_dev = 'https://api-satusehat-dev.dto.kemkes.go.id/fhir-r4/v1';
         $url_staging = 'https://api-satusehat-stg.dto.kemkes.go.id/fhir-r4/v1';
         $url_prod = 'https://api-satusehat.kemkes.go.id/fhir-r4/v1';
-        $client_id = '8Sy0DMwjAfINN24Wa22u0YcieLLc71bSmGkGqCFsDBcyhG1r';
-        $client_secret = 'mj5cQtOjlkhGdK3nOl1YcGyAFx92WTWtALbdPJZIVMfFXDXGCSS6D35HZeWONwFJ';
+        $client_id = ''; // dari env
+        $client_secret = ''; // dari env
 
 
         return $url_prod;
     }
     public static function organization_id()
     {
-        $organization_id = '100026342';
+        $organization_id = ''; // dari env
         return $organization_id;
     }
 
@@ -115,7 +117,6 @@ class BridgingSatsetHelper
         $data = json_decode($response, true);
 
         return $data;
-        
     }
 
     public static function get_data($token, $params)
@@ -142,7 +143,7 @@ class BridgingSatsetHelper
             $resp = SatsetErrorRespon::create($err);
 
             $send = [
-                'message' => 'failed' ,
+                'message' => 'failed',
                 'data' => $resp
             ];
             return $send;

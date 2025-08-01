@@ -24,7 +24,9 @@ class PenerimaanruanganController extends Controller
         $user = auth()->user();
         $pegawai = Pegawai::find($user->pegawai_id);
         $pengguna = PenggunaRuang::where('kode_ruang', $pegawai->kode_ruang)->first();
-
+        if (!$pengguna) return new JsonResponse([
+            'message' => 'Pengguna Ruangan tidak ditemukan silahkan cek kembali Akses Ruangan Anda'
+        ], 410);
         $data = Permintaanruangan::where('status', '=', 7)
             ->where('kode_pengguna', $pengguna->kode_pengguna)
             ->with('details.barangrs.barang108', 'details.barangrs.satuan', 'pj', 'pengguna')->get();

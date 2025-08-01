@@ -82,8 +82,10 @@ class BridgingeklaimHelper
     public static function curl_func($ws_query)
     {
         $header = array("Content-Type: application/x-www-form-urlencoded");
-        $url = "http://192.168.150.100/E-Klaim/ws.php";
-        $key = "14e988d90f85bece31cbb1ac3e1b76e88083560c52cc4f4e951c5ebee4f2ee85";
+
+        $url = ""; // masuk env
+
+        $key = ""; // masuk env
 
         $json_request = json_encode($ws_query);
         $payload = self::inacbg_encrypt($json_request, $key);

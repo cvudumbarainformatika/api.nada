@@ -19,11 +19,11 @@ class bridgingbankjatimHelper
         $merchanthashkey = '8M9R0BZE21';
 
 
-        $merchantPan = '9360011400000396828';
+        $merchantPan = '';
         $hashcodeKey = hash("sha256", $merchantPan . '' . $billNumber_tampung . '' . $terminalUser_tampung . '' . $merchanthashkey);
         $billNumber = $billNumber_tampung;
         $purposetrx = $request->noreg;
-        $storelabel = 'RSUD DR M SALEH';
+        $storelabel = ''; // nama rs
         $customerlabel = 'PUBLIC';
         $terminalUser = $terminalUser_tampung;
         $expiredDate = date('Y-m-d 23:59:59');;

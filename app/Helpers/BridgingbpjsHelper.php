@@ -229,16 +229,16 @@ class BridgingbpjsHelper
 
     public static function getSignature(string $name)
     {
-        // BPJS_ANTREAN_CONS_ID=31014
-        // BPJS_ANTREAN_SECRET=3sY5CB0658
-        // $BPJS_ANTREAN_USER_KEY = '140dbebe0248aa4ce64557a8ffbdb0e9';
-        // BPJS_ANTREAN_USER_KEY_DEV=f5abd04a8fadc1061e8853715662c3e8
+        // BPJS_ANTREAN_CONS_ID=
+        // BPJS_ANTREAN_SECRET=
+        // $BPJS_ANTREAN_USER_KEY = ' ';
+        // BPJS_ANTREAN_USER_KEY_DEV=
 
-        // $BPJS_ANTREAN_SECRET = '3sY5CB0658';
-        $BPJS_ANTREAN_USER_KEY = 'f5abd04a8fadc1061e8853715662c3e8';
+        // $BPJS_ANTREAN_SECRET = ' ';
+        $BPJS_ANTREAN_USER_KEY = ' '; // masuk env
 
 
-        $VCLAIM_DEV_USER_KEY_DEV = "fbad382d69383c78969f889077053ebb";
+        $VCLAIM_DEV_USER_KEY_DEV = ""; // masuk env
         $VCLAIM_DEV_USER_KEY = 'belum_ada';
 
         $cons = "31014";
@@ -320,7 +320,7 @@ class BridgingbpjsHelper
         return response()->json($res);
     }
 
-    
+
 
     public static function getHeadericare($data)
     {
