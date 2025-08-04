@@ -12,4 +12,6 @@ class Jabatan extends Model
     protected $connection = 'kepex';
     protected $guarded = ['id'];
     protected $table = 'm_jabatan';
+
+     public $timestamps = false;
 }

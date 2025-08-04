@@ -279,4 +279,14 @@ class FormatingHelper
         }
         return $has . $n . "-" . $tahun . "-" . $kode;
     }
+
+    public static function allmaster($n, $kode)
+    {
+        $has = null;
+        $lbr = strlen($n);
+        for ($i = 1; $i <= 7 - $lbr; $i++) {
+            $has = $has . "0";
+        }
+        return $has . $n . "-" . $kode;
+    }
 }
