@@ -563,7 +563,7 @@ class DepoController extends Controller
         ])
             ->where('no_permintaan', 'Like', '%' . $nopermintaan . '%')
             ->when($gudang, function ($wew) use ($gudang) {
-                $all = ['Gd-02010104', 'Gd-05010101', 'Gd-04010103', 'Gd-03010101', 'Gd-04010102'];
+                $all = ['Gd-04010104', 'Gd-05010101', 'Gd-04010103', 'Gd-03010101', 'Gd-04010102'];
                 if ($gudang === 'all') {
                     $wew->whereIn('tujuan', $all);
                 } else {

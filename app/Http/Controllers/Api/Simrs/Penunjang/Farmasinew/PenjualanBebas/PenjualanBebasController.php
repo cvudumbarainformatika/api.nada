@@ -576,7 +576,7 @@ class PenjualanBebasController extends Controller
                 $lebel = 'PD-KO';
             } elseif ($request->depo === 'Gd-05010101') {
                 $lebel = 'PD-RJ';
-            } else if ($request->depo === 'Gd-02010104') {
+            } else if ($request->depo === 'Gd-04010104') {
                 $lebel = 'PD-IR';
             } else {
                 $lebel = 'D-UM';

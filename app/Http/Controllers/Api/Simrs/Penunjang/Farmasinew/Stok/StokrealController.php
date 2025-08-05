@@ -450,7 +450,7 @@ class StokrealController extends Controller
     public function listStokMinDepo()
     {
         $kdruang = request('kdruang');
-        $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+        $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
         // $stokreal = Mobatnew::select(
         //     'stokreal.id as idx',
         //     'stokreal.kdruang',

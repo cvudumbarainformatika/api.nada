@@ -117,7 +117,7 @@ class SpjOpnameController extends Controller
                     ->orWhere('kdruangansim', 'like', '%Gd-03010101%')
                     ->orWhere('kdruangansim', 'like', '%Gd-03010100%')
                     ->orWhere('kdruangansim', 'like', '%Gd-05010101%')
-                    ->orWhere('kdruangansim', 'like', '%Gd-02010104%');
+                    ->orWhere('kdruangansim', 'like', '%Gd-04010104%');
             })
             ->with('relasi_jabatan', 'jabatanTambahan')
             ->whereNotNull('satset_uuid')

@@ -40,7 +40,7 @@ class cekStokDIR extends Command
     public function handle()
     {
         $depo = new Request([
-            'kdruang' => 'Gd-02010104'
+            'kdruang' => 'Gd-04010104'
         ]);
         info('perbaikan data per depo ' . $depo);
         $controller = new SetNewStokController;
