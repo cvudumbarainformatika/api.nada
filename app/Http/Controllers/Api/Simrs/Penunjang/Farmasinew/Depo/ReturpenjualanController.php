@@ -136,7 +136,7 @@ class ReturpenjualanController extends Controller
                 },
                 // rs 17 itu rs 19
                 // function ($q) {
-                //     if (request('kddepo') == 'Gd-02010104') {
+                //     if (request('kddepo') == 'Gd-04010104') {
                 //         $q->leftJoin('rs.rs17', 'rs.rs17.rs1', '=', 'farmasi.resep_keluar_h.noreg')
                 //             ->where('rs.rs17.rs19', '!=', '1');
                 //     }

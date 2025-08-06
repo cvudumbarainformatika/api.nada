@@ -46,17 +46,14 @@ class MjabatanController extends Controller
         ]);
 
         if (!$kode) {
-            DB::select('call mjabatan(@nomor)');
-            $nomor = DB::table('counter')->select('mjabatan')->first();
-            $validated['kode_jabatan'] = FormatingHelper::allmaster($nomor->kode, 'JBT');
+            DB::connection('kepex')->select('call mjabatan(@nomor)');
+            $nomor = DB::connection('kepex')->table('counter')->select('mjabatan')->first();
+            $validated['kode_jabatan'] = FormatingHelper::allmaster($nomor->mjabatan, 'JBT');
         }
 
          $jabatan = Jabatan::updateOrCreate(
-            [
-                'kode_jabatan' =>  $validated['kode_jabatan'],
-                'jabatan' => $validated['jabatan']
-            ],
-            $validated
+            ['kode_jabatan' => $validated['kode_jabatan']],
+            ['jabatan' => $validated['jabatan']],
         );
         return new JsonResponse([
             'data' => $jabatan,

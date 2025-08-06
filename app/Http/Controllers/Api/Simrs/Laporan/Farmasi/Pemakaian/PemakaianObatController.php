@@ -19,7 +19,7 @@ class PemakaianObatController extends Controller
         // $dateAkhir = Carbon::parse(request('to'));
         // $blnLaluAwal = $dateAwal->subMonth()->format('Y-m-d');
         $blnLaluAkhir = $dateAwal->subMonth()->format('Y-m');
-        $gudangdepo = ['Gd-03010100', 'Gd-03010101', 'Gd-05010100', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104']; //
+        $gudangdepo = ['Gd-03010100', 'Gd-03010101', 'Gd-05010100', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104']; //
         $obat = Mobatnew::select(
             'kd_obat',
             'nama_obat',
@@ -128,7 +128,7 @@ class PemakaianObatController extends Controller
         // $dateAkhir = Carbon::parse(request('to'));
         // $blnLaluAwal = $dateAwal->subMonth()->format('Y-m-d');
         $blnLaluAkhir = $dateAwal->subMonth()->format('Y-m');
-        $gudangdepo = ['Gd-03010100', 'Gd-03010101', 'Gd-05010100', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104']; //
+        $gudangdepo = ['Gd-03010100', 'Gd-03010101', 'Gd-05010100', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104']; //
         $obat = Mobatnew::select(
             'kd_obat',
             'nama_obat',
@@ -261,7 +261,7 @@ class PemakaianObatController extends Controller
 
                     ->where('stokopname.jumlah', '!=', 0)
                     ->where('stokopname.tglopname', 'LIKE', $blnLalu . '%')
-                    ->whereIn('stokopname.kdruang', ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104']);
+                    ->whereIn('stokopname.kdruang', ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104']);
                 if (request('jenis') == 'rekap') {
                     $st->groupBy('stokopname.kdobat', 'stokopname.nopenerimaan', 'stokopname.nobatch');
                 } else {
@@ -305,7 +305,7 @@ class PemakaianObatController extends Controller
                     ->join('resep_keluar_h', 'resep_keluar_h.noresep', '=', 'resep_keluar_r.noresep')
                     ->havingRaw('jumlah > 0')
                     ->where('resep_keluar_h.tgl_selesai', 'LIKE', '%' . request('tahun') . '-' . request('bulan') . '%')
-                    ->whereIn('resep_keluar_h.depo', ['Gd-04010102', 'Gd-05010101', 'Gd-02010104']) // ambil yang selain OK
+                    ->whereIn('resep_keluar_h.depo', ['Gd-04010102', 'Gd-05010101', 'Gd-04010104']) // ambil yang selain OK
                     ->with(
                         'header:noresep,norm',
                         'header.datapasien:rs1,rs2',

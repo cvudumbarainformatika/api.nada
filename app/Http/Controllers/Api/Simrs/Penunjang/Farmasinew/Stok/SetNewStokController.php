@@ -54,9 +54,9 @@ class SetNewStokController extends Controller
             ['nama' => 'Depo Rawat inap', 'kode' => 'Gd-04010102', 'lama' => 'AP0002'],
             ['nama' => 'Depo OK', 'kode' => 'Gd-04010103', 'lama' => 'AP0005'],
             ['nama' => 'Depo Rawat Jalan', 'kode' => 'Gd-05010101', 'lama' => 'AP0001'],
-            ['nama' => 'Depo IGD', 'kode' => 'Gd-02010104', 'lama' => 'AP0007']
+            ['nama' => 'Depo IGD', 'kode' => 'Gd-04010104', 'lama' => 'AP0007']
         ];
-        $gudBaru = ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+        $gudBaru = ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
 
         $mapingDep = ['GU0001', 'GU0002', 'RC0001', 'AP0002', 'AP0005', 'AP0001', 'AP0007'];
 
@@ -104,7 +104,7 @@ class SetNewStokController extends Controller
                 else if ($item[$anu] === 'Gd-04010102') $nPen = 'D-RI';
                 else if ($item[$anu] === 'Gd-04010103') $nPen = 'D-OK';
                 else if ($item[$anu] === 'Gd-05010101') $nPen = 'D-RJ';
-                else if ($item[$anu] === 'Gd-02010104') $nPen = 'D-IGD';
+                else if ($item[$anu] === 'Gd-04010104') $nPen = 'D-IGD';
                 else  $nPen = 'NDF';
                 $temp = [
                     'nopenerimaan' => '001/' . date('m/Y') . '/awal/' . $nPen,
@@ -150,7 +150,7 @@ class SetNewStokController extends Controller
         $gKo = 'Gd-05010100';
         $gFo = 'Gd-03010100';
         $dFo = 'Gd-03010101';
-        $dep = ['Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+        $dep = ['Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
         $obKo = FarmasinewStokreal::select('kdobat')->where('kdruang', $gKo)->distinct()->get('kdobat');
         $obFo = FarmasinewStokreal::select('kdobat')->where('kdruang', $gFo)->distinct()->get('kdobat');
         $obDFo = FarmasinewStokreal::where('kdruang', $dFo)->whereNotIn('kdobat', $obFo)->groupBy('kdobat')->get();
@@ -282,7 +282,7 @@ class SetNewStokController extends Controller
             ['nama' => 'Depo Rawat inap', 'kode' => 'Gd-04010102', 'lama' => 'AP0002'],
             ['nama' => 'Depo OK', 'kode' => 'Gd-04010103', 'lama' => 'AP0005'],
             ['nama' => 'Depo Rawat Jalan', 'kode' => 'Gd-05010101', 'lama' => 'AP0001'],
-            ['nama' => 'Depo IGD', 'kode' => 'Gd-02010104', 'lama' => 'AP0007']
+            ['nama' => 'Depo IGD', 'kode' => 'Gd-04010104', 'lama' => 'AP0007']
         ];
 
         $mapingDep = ['GU0001', 'GU0002', 'RC0001', 'AP0002', 'AP0005', 'AP0001', 'AP0007'];
@@ -327,7 +327,7 @@ class SetNewStokController extends Controller
                 else if ($ruang === 'Gd-04010102') $nPen = 'D-RI';
                 else if ($ruang === 'Gd-04010103') $nPen = 'D-OK';
                 else if ($ruang === 'Gd-05010101') $nPen = 'D-RJ';
-                else if ($ruang === 'Gd-02010104') $nPen = 'D-IGD';
+                else if ($ruang === 'Gd-04010104') $nPen = 'D-IGD';
                 else  $nPen = 'NDF';
                 $temp = [
                     'nopenerimaan' => '001/' . date('m/Y') . '/opnameAwal/' . $nPen,
@@ -453,14 +453,14 @@ class SetNewStokController extends Controller
         //     ['nama' => 'Depo Rawat inap', 'kode' => 'Gd-04010102', 'lama' => 'AP0002'],
         //     ['nama' => 'Depo OK', 'kode' => 'Gd-04010103', 'lama' => 'AP0005'],
         //     ['nama' => 'Depo Rawat Jalan', 'kode' => 'Gd-05010101', 'lama' => 'AP0001'],
-        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-02010104', 'lama' => 'AP0007']
+        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-04010104', 'lama' => 'AP0007']
         // ];
 
         try {
             DB::connection('farmasi')->beginTransaction();
             $data = [];
             $gudangs = ['Gd-05010100', 'Gd-03010100'];
-            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
             $koderuangan = $koderuangan;
             $bulan = date('m');
             $tahun = date('Y');
@@ -1339,7 +1339,7 @@ class SetNewStokController extends Controller
         //     ['nama' => 'Depo Rawat inap', 'kode' => 'Gd-04010102', 'lama' => 'AP0002'],
         //     ['nama' => 'Depo OK', 'kode' => 'Gd-04010103', 'lama' => 'AP0005'],
         //     ['nama' => 'Depo Rawat Jalan', 'kode' => 'Gd-05010101', 'lama' => 'AP0001'],
-        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-02010104', 'lama' => 'AP0007']
+        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-04010104', 'lama' => 'AP0007']
         // ];
         // return new JsonResponse([
         //     // 'data' => $data,
@@ -1926,8 +1926,8 @@ class SetNewStokController extends Controller
         try {
             DB::connection('farmasi')->beginTransaction();
             $gudangs = ['Gd-05010100', 'Gd-03010100'];
-            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
-            $rumahSakit = ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
+            $rumahSakit = ['Gd-05010100', 'Gd-03010100', 'Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
             $kdruang = $data['depo'];
             $bulan = $data['month'];
             $tahun = $data['year'];
@@ -2944,7 +2944,7 @@ class SetNewStokController extends Controller
         //     ['nama' => 'Depo Rawat inap', 'kode' => 'Gd-04010102', 'lama' => 'AP0002'],
         //     ['nama' => 'Depo OK', 'kode' => 'Gd-04010103', 'lama' => 'AP0005'],
         //     ['nama' => 'Depo Rawat Jalan', 'kode' => 'Gd-05010101', 'lama' => 'AP0001'],
-        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-02010104', 'lama' => 'AP0007']
+        //     ['nama' => 'Depo IGD', 'kode' => 'Gd-04010104', 'lama' => 'AP0007']
         // ];
 
         // stok sekrang diganti stok akhir di opname
@@ -2960,7 +2960,7 @@ class SetNewStokController extends Controller
             DB::connection('farmasi')->beginTransaction();
             $data = [];
             $gudangs = ['Gd-05010100', 'Gd-03010100'];
-            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-02010104'];
+            $depos = ['Gd-03010101', 'Gd-04010102', 'Gd-04010103', 'Gd-05010101', 'Gd-04010104'];
             $koderuangan = $head['depo'];
             $kdobat = $head['obat'];
             $bulan = $head['month'];
