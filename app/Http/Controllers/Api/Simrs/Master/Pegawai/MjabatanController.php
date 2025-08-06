@@ -37,7 +37,7 @@ class MjabatanController extends Controller
 
     public function store(Request $request)
     {
-        $kode = $request->kode;
+        $kode = $request->kode_jabatan;
         $validated = $request->validate([
             'jabatan' => 'required',
             'kode_jabatan' => 'nullable',
