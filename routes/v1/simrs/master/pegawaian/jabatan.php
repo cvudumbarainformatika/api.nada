@@ -11,4 +11,5 @@ Route::group([
 ], function () {
     Route::get('/get-list',[MjabatanController::class, 'index']);
     Route::post('/simpan',[MjabatanController::class, 'store']);
+    Route::post('/hapus',[MjabatanController::class, 'hapus']);
 });
