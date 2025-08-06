@@ -20,18 +20,53 @@ class ObatnewController extends Controller
 {
     public function simpan(Request $request)
     {
-        if (!$request->kd_obat) {
+        $validated = $request->validate([
+            'kd_obat' => 'nullable',
+            'nama_obat' => 'required',
+            'barcode' => 'nullable',
+            'merk' => 'nullable',
+            'kandungan' => 'nullable',
+            'jenis_perbekalan' => 'nullable',
+            'bentuk_sediaan' => 'nullable',
+            'kode108' => 'nullable',
+            'uraian108' => 'nullable',
+            'kode50' => 'nullable',
+            'uraian50' => 'nullable',
+            'satuan_b' => 'nullable',
+            'satuan_k' => 'nullable',
+            'kelompok_psikotropika' => 'nullable',
+            'kelompok_rko' => 'nullable',
+            'status_generik' => 'nullable',
+            'status_forkid' => 'nullable',
+            'status_fornas' => 'nullable',
+            'status_kronis' => 'nullable',
+            'status_prb' => 'nullable',
+            'status_konsinyasi' => 'nullable',
+            'keterangan_kronis' => 'nullable',
+            'kekuatan_dosis' => 'nullable',
+            'volumesediaan' => 'nullable',
+            'kelas_terapi' => 'nullable',
+            'obat_program' => 'nullable',
+            'obat_donasi' => 'nullable',
+            'obat_kebijakan' => 'nullable',
+            'sistembayar' => 'nullable',
+            // 'kelasterapis' => 'nullable',
+            // 'indikasis' => 'nullable',
+        ], [
+            'nama_obat.required' => 'Nama Obat wajib diisi.'
+        ]);
+        if (!$validated['kd_obat']) {
             DB::connection('farmasi')->select('call master_obat(@nomor)');
             $x = DB::connection('farmasi')->table('conter')->select('mobat')->get();
             $wew = $x[0]->mobat;
             $kodeobat = FormatingHelper::mobat($wew, 'FAR');
         } else {
-            $kodeobat = $request->kd_obat;
+            $kodeobat = $validated['kd_obat'];
         }
 
         $simpan = Mobatnew::updateOrCreate(
             ['kd_obat' => $kodeobat],
-            $request->all()
+            $validated
         );
         if ($request->has('kelasterapis')) {
             foreach ($request->kelasterapis as $key) {
