@@ -96,7 +96,12 @@ class ObatnewController extends Controller
 
     public function hapus(Request $request)
     {
-        $hapus = Mobatnew::find($request->id)->update(['flag' => '1']);
+        $validated = $request->validate([
+            'id' => 'required',
+        ], [
+            'id.required' => 'id wajib diisi.'
+        ]);
+        $hapus = Mobatnew::find($validated['id'])->update(['flag' => '1']);
 
         if (!$hapus) {
             return new JsonResponse(['message' => 'gagal dihapus'], 500);
