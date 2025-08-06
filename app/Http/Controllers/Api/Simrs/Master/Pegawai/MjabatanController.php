@@ -27,6 +27,7 @@ class MjabatanController extends Controller
                     $query->where('jabatan', 'like', '%' . request('q') . '%');
                 });
             })
+            ->where('aktif','<>', '1')
             ->orderBy($req['order_by'], $req['sort']);
         $totalCount = (clone $query)->count();
         $data = $query->simplePaginate($req['per_page']);
@@ -78,6 +79,7 @@ class MjabatanController extends Controller
             ], 404);
         }
         $jabatan->aktif = '1';
+        $jabatan->save();
         return new JsonResponse([
             'data' => $jabatan,
             'message' => 'Data Jabatan berhasil disimpan'
