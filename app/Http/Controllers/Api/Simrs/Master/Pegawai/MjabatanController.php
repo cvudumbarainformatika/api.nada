@@ -61,4 +61,27 @@ class MjabatanController extends Controller
         ]);
 
     }
+
+    public function hapus(Request $request)
+    {
+        $kode = $request->kode_jabatan;
+        $validated = $request->validate([
+            'kode_jabatan' => 'required',
+        ], [
+            'kode_jabatan.required' => 'Jabatan wajib diisi.'
+        ]);
+
+        $jabatan = Jabatan::where('kode_jabatan', $validated['kode_jabatan'])->first();
+        if (!$jabatan) {
+            return new JsonResponse([
+                'message' => 'Data Jabatan tidak ditemukan'
+            ], 404);
+        }
+        $jabatan->aktif = '1';
+        return new JsonResponse([
+            'data' => $jabatan,
+            'message' => 'Data Jabatan berhasil disimpan'
+        ]);
+
+    }
 }
