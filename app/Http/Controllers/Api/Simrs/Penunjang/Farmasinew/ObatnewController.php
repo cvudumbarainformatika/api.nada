@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Simrs\Penunjang\Farmasinew;
 
 use App\Helpers\BridgingbpjsHelper;
 use App\Helpers\FormatingHelper;
+use App\Helpers\ResponseHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Simrs\Penunjang\Farmasinew\IndikasiObat;
 use App\Models\Simrs\Penunjang\Farmasinew\Mapingkelasterapi;
@@ -27,52 +28,14 @@ class ObatnewController extends Controller
         } else {
             $kodeobat = $request->kd_obat;
         }
-        $request['kelasterapis'] = $request->kelasterapis ?? '';
-        $request['gudang'] = $request->gudang ?? '';
-
-        $request['status_generik'] = $request->status_generik ?? '';
-        $request['status_forkid'] = $request->status_forkid ?? '';
-        $request['status_fornas'] = $request->status_fornas ?? '';
-        $request['status_kronis'] = $request->status_kronis ?? '';
-        $request['status_prb'] = $request->status_prb ?? '';
-        $request['status_konsinyasi'] = $request->status_konsinyasi ?? '';
-        $request['kelompok_psikotropika'] = $request->kelompok_psikotropika ?? '';
-        $request['kekuatan_dosis'] = $request->kekuatan_dosis ?? '';
-        $request['obat_program'] = $request->obat_program ?? '';
-        $request['obat_donasi'] = $request->obat_donasi ?? '';
-        $request['obat_kebijakan'] = $request->obat_kebijakan ?? '';
 
         $simpan = Mobatnew::updateOrCreate(
             ['kd_obat' => $kodeobat],
-
             $request->all()
-            // 'nama_obat' => $request->nama_obat,
-            // 'merk' => $request->merk,
-            // 'kandungan' => $request->kandungan,
-            // 'jenis_perbekalan' => $request->jenis_perbekalan,
-            // 'bentuk_sediaan' => $request->bentuk_sediaan,
-            // 'kode108' => $request->kode108,
-            // 'uraian108' => $request->uraian108,
-            // 'kode50' => $request->kode50,
-            // 'uraian50' => $request->uraian50,
-            // 'satuan_b' => $request->satuan_b,
-            // 'satuan_k' => $request->satuan_k,
-            // 'kelompok_psikotropika' => $request->kelompok_psikotropika,
-            // 'kelompok_penyimpanan' => $request->kelompok_penyimpanan,
-            // 'kelompok_rko' => $request->kelompok_rko,
-            // 'status_generik' =>$request->status_generik,
-            // 'status_forkid' =>$request->status_forkid,
-            // 'status_fornas' =>$request->status_fornas,
-            // 'kekuatan_dosis' =>$request->kekuatan_dosis,
-            // 'volumesediaan' =>$request->volumesediaan,
-            // 'kelas_terapi' =>$request->kelas_terapi,
-            // 'nilai_kdn' =>$request->nilai_kdn,
-            // 'sertifikatkdn' =>$request->sertifikatkdn,
-            // 'sistembayar' =>$request->sistembayar,
         );
         if ($request->has('kelasterapis')) {
             foreach ($request->kelasterapis as $key) {
-                $simpanrinci = Mapingkelasterapi::firstOrCreate([
+                Mapingkelasterapi::firstOrCreate([
                     'kd_obat' => $simpan->kd_obat,
                     'kelas_terapi' => $key['kelasterapi']
                 ]);
@@ -80,7 +43,7 @@ class ObatnewController extends Controller
         }
         if ($request->has('indikasis')) {
             foreach ($request->indikasis as $key) {
-                $simpanrinci = IndikasiObat::firstOrCreate([
+                IndikasiObat::firstOrCreate([
                     'kd_obat' => $simpan->kd_obat,
                     'indikasi' => $key['indikasi']
                 ]);
@@ -89,7 +52,11 @@ class ObatnewController extends Controller
         if (!$simpan) {
             return new JsonResponse(['message' => 'data gagal disimpan'], 500);
         }
-        return new JsonResponse(['message' => 'data berhasil disimpan'], 200);
+        $simpan->load('mkelasterapi', 'indikasi');
+        return new JsonResponse([
+            'message' => 'data berhasil disimpan',
+            'data' => $simpan
+        ], 200);
     }
 
     public function hapus(Request $request)
@@ -104,8 +71,15 @@ class ObatnewController extends Controller
 
     public function list()
     {
+        $req = [
+            'order_by' => request('order_by', 'created_at'),
+            'sort' => request('sort', 'asc'),
+            'page' => request('page', 1),
+            'per_page' => request('per_page', 10),
+        ];
         // return new JsonResponse(request()->all());
-        $list = Mobatnew::with('mkelasterapi', 'indikasi')
+        $query = Mobatnew::query()
+            ->with('mkelasterapi', 'indikasi')
             ->where(function ($list) {
                 $list->where('nama_obat', 'Like', '%' . request('q') . '%')
                     ->orWhere('merk', 'Like', '%' . request('q') . '%')
@@ -116,10 +90,15 @@ class ObatnewController extends Controller
                 $q->where('status_prb', '1');
             })
             ->orderBy('id', 'desc')
-            ->where('flag', '')
-            ->paginate(request('per_page'));
+            ->where('flag', '');
 
-        return new JsonResponse($list);
+        $totalCount = (clone $query)->count();
+        $data = $query->simplePaginate($req['per_page']);
+
+        $resp = ResponseHelper::responseGetSimplePaginate($data, $req, $totalCount);
+        // ->paginate(request('per_page'));
+
+        return new JsonResponse($resp);
     }
 
     public function cariobat()
