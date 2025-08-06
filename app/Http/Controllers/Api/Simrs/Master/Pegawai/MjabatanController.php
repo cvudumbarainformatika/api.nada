@@ -66,7 +66,7 @@ class MjabatanController extends Controller
     public function hapus(Request $request)
     {
         $id = $request->id;
-        $jabatan = Jabatan::where('kode_jabatan', $id)->first();
+        $jabatan = Jabatan::where('id', $id)->first();
         if (!$jabatan) {
             return new JsonResponse([
                 'message' => 'Data Jabatan tidak ditemukan'
