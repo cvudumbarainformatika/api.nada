@@ -73,7 +73,7 @@ class ObatnewController extends Controller
     {
         $req = [
             'order_by' => request('order_by', 'created_at'),
-            'sort' => request('sort', 'asc'),
+            'sort' => request('sort', 'desc'),
             'page' => request('page', 1),
             'per_page' => request('per_page', 10),
         ];
@@ -89,7 +89,7 @@ class ObatnewController extends Controller
             ->when(request('status_prb') == 'true', function ($q) {
                 $q->where('status_prb', '1');
             })
-            ->orderBy('id', 'desc')
+            ->orderBy($req['order_by'], $req['sort'])
             ->where('flag', '');
 
         $totalCount = (clone $query)->count();
