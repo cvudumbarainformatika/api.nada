@@ -478,9 +478,11 @@ class DistribusigudangController extends Controller
                                 'no_permintaan' => $request->nopermintaan,
                                 'nopenerimaan' => $stokItem->nopenerimaan,
                                 'kd_obat' => $stokItem->kdobat,
-                                'nobatch' => $stokItem->nobatch,
+                                'id_rinci_penerimaan' => $stokItem->id_rinci_penerimaan,
                             ],
                             [
+                                'nobatch' => $stokItem->nobatch,
+                                'id_stok' => $stokItem->id_stok,
                                 'jml' => $pengurangan,
                                 'tglpenerimaan' => $stokItem->tglpenerimaan,
                                 'harga' => $stokItem->harga ?? 0,
