@@ -76,7 +76,7 @@ class MjabatanController extends Controller
         $jabatan->save();
         return new JsonResponse([
             'data' => $jabatan,
-            'message' => 'Data Jabatan berhasil disimpan'
+            'message' => 'Data Jabatan berhasil Dihapus'
         ]);
 
     }
