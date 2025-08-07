@@ -286,7 +286,7 @@ class DistribusigudangController extends Controller
     /**
      * new simpan distribusi
      */
-    public function newSimpandistribusidepo(Request $request)
+    public function newSimpandistribusidepoOld(Request $request)
     {
         $allStok = Stokreal::selectRaw('kdobat, kdruang,sum(jumlah) as jumlah')
             ->where('kdobat', $request->kodeobat)
@@ -329,7 +329,7 @@ class DistribusigudangController extends Controller
                         ->where('kd_obat', $stokItem->kdobat)
                         ->where('jml', $pengurangan)
                         ->first();
-                    if ($sudahAdaDetail) break;
+                    if ($sudahAdaDetail) continue;
                     $mutasi = Mutasigudangkedepo::create(
                         [
                             'no_permintaan' => $request->nopermintaan,
@@ -407,6 +407,152 @@ class DistribusigudangController extends Controller
             ], 410);
         }
     }
+    public function newSimpandistribusidepo(Request $request)
+    {
+        $request->validate([
+            'kodeobat' => 'required',
+            'kdgudang' => 'required',
+            'nopermintaan' => 'required',
+            'jumlah_minta' => 'required|numeric|min:1',
+        ]);
+
+        $stokAwal = Stokreal::selectRaw('kdobat, kdruang, SUM(jumlah) as jumlah')
+            ->where('kdobat', $request->kodeobat)
+            ->where('kdruang', $request->kdgudang)
+            ->groupBy('kdobat', 'kdruang')
+            ->first();
+
+        if (!$stokAwal || (float) $request->jumlah_minta > (float) $stokAwal->jumlah) {
+            return new JsonResponse([
+                'message' => 'Stok tidak mencukupi, sisa stok: ' . ($stokAwal->jumlah ?? 0)
+            ], 422);
+        }
+
+        $jumlahMintaAwal = $request->jumlah_minta; // simpan nilai awal
+        $result = null;
+
+        try {
+            $result = DB::connection('farmasi')->transaction(function () use ($request, $jumlahMintaAwal) {
+                $sudahAda = Mutasigudangkedepo::where('no_permintaan', $request->nopermintaan)
+                    ->where('kd_obat', $request->kodeobat)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($sudahAda) {
+                    throw new \Exception(
+                        'Obat sudah didistribusikan sebelumnya',
+                        409
+                    );
+                }
+
+                $jmldiminta = $jumlahMintaAwal;
+
+                $caristok = Stokreal::lockForUpdate()
+                    ->where('kdobat', $request->kodeobat)
+                    ->where('kdruang', $request->kdgudang)
+                    ->where('jumlah', '>', 0)
+                    ->orderBy('tglpenerimaan', 'ASC')
+                    ->get();
+
+                if ($caristok->isEmpty()) {
+                    throw new \Exception('Stok tidak ditemukan, apakah sudah habis?', 422);
+                }
+
+                foreach ($caristok as $stokItem) {
+                    if ($jmldiminta <= 0) break;
+
+                    $sisa = $stokItem->jumlah;
+                    $pengurangan = min($jmldiminta, $sisa);
+
+                    $sudahAdaDetail = Mutasigudangkedepo::where('no_permintaan', $request->nopermintaan)
+                        ->where('nopenerimaan', $stokItem->nopenerimaan)
+                        ->where('kd_obat', $stokItem->kdobat)
+                        ->where('nobatch', $stokItem->nobatch)
+                        // ->where('jml', $pengurangan)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$sudahAdaDetail) {
+                        $mutasi = Mutasigudangkedepo::firstOrCreate(
+                            [
+                                'no_permintaan' => $request->nopermintaan,
+                                'nopenerimaan' => $stokItem->nopenerimaan,
+                                'kd_obat' => $stokItem->kdobat,
+                                'nobatch' => $stokItem->nobatch,
+                            ],
+                            [
+                                'jml' => $pengurangan,
+                                'tglpenerimaan' => $stokItem->tglpenerimaan,
+                                'harga' => $stokItem->harga ?? 0,
+                                'tglexp' => $stokItem->tglexp,
+                            ]
+                        );
+
+                        if (!$mutasi) {
+                            throw new \Exception('Data mutasi gagal dibuat');
+                        }
+
+                        $stokItem->decrement('jumlah', $pengurangan);
+                        $jmldiminta -= $pengurangan;
+                    }
+                }
+
+                $nyamuta = Mutasigudangkedepo::select('kd_obat', DB::raw('SUM(jml) as jml'))
+                    ->where('no_permintaan', $request->nopermintaan)
+                    ->where('kd_obat', $request->kodeobat)
+                    ->first();
+
+                $distibusi = $nyamuta->jml ?? 0;
+
+                $user = FormatingHelper::session_user();
+
+                $rinciPer = Permintaandeporinci::where('no_permintaan', $request->nopermintaan)
+                    ->where('kdobat', $request->kodeobat)
+                    ->first();
+
+                if ($rinciPer) {
+                    $rinciPer->update([
+                        'jumlah_diverif' => $distibusi,
+                        'user_verif' => $user['kodesimrs'],
+                        'tgl_verif' => now(),
+                    ]);
+                }
+
+                return [
+                    'nyamuta' => $nyamuta,
+                    'distibusi' => $distibusi,
+                ];
+            });
+
+            $msg = [
+                'data' => [
+                    'aksi' => 'distribusi',
+                    'dari' => $request->dari,
+                    'no_permintaan' => $request->nopermintaan,
+                    'kdobat' => $request->kodeobat,
+                    'depo' => $request->dari,
+                    'jml' => $result['distibusi'],
+                ]
+            ];
+
+            event(new NotifMessageEvent($msg, 'depo-farmasi', auth()->user()));
+
+            return new JsonResponse([
+                'message' => 'Data berhasil disimpan',
+                'data' => $result['nyamuta'],
+                'jumlah' => $result['distibusi'],
+            ], 200);
+        } catch (\Exception $e) {
+            // $statusCode = in_array($e->getCode(), [409, 422]) ? $e->getCode() : 500;
+
+            return new JsonResponse([
+                'message' => 'Data gagal disimpan: ' . $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ], 410);
+        }
+    }
+
 
     public function kuncipermintaandaridepo(Request $request)
     {

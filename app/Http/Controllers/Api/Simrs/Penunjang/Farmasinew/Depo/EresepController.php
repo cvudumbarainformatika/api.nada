@@ -32,6 +32,7 @@ use App\Models\Simrs\Penunjang\Laborat\Laboratpemeriksaan;
 use App\Models\Simrs\Rajal\KunjunganPoli;
 use App\Models\SistemBayar;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1903,6 +1904,150 @@ class EresepController extends Controller
         }
         return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
     }
+    public function resepSimpanSelesai(Request $request)
+    {
+        // cek header flag, sudah selesai apa belum
+        $header = Resepkeluarheder::where('noresep', $request->noresep)->first();
+        if ($header->flag === '3') {
+            return new JsonResponse([
+                'message' => 'Resep Sudah Diselesaikan',
+                'req' => $request->all(),
+                'data' => $header,
+            ], 200);
+        }
+        // step --- cek obat yang sudah di simpan ---
+        // ambil permintaan yang lebih dari 0
+        $permintaan = collect($request->permintaanresep)->where('jumlah', '>', 0)->toArray();
+        $permintaanRacikan = collect($request->permintaanracikan)->where('jumlahobat', '>', 0)->toArray();
+        try {
+            DB::connection('farmasi')->beginTransaction();
+            // ambil kode obat
+            $obatPermintaan = array_unique(array_column($permintaan, 'kdobat'));
+            $obatPermintaanRacikan = array_unique(array_column($permintaanRacikan, 'kdobat'));
+
+            // ambil obat yang sudah di simpan, jika ada
+            $resepKeluar = [];
+            $resepKeluarRacikan = [];
+            if (!empty($obatPermintaan)) $resepKeluar = Resepkeluarrinci::whereIn('kdobat', $obatPermintaan)->where('noresep', $request->noresep)->pluck('kdobat');
+            if (!empty($obatPermintaanRacikan)) $resepKeluarRacikan = Resepkeluarrinciracikan::whereIn('kdobat', $obatPermintaanRacikan)->where('noresep', $request->noresep)->pluck('kdobat');
+
+            // keluarkan dari permintaan jika sudah ada di resep keluar
+            $permintaanFinal = collect($request->permintaanresep)->where('jumlah', '>', 0)->whereNotIn('kdobat', $resepKeluar)->toArray();
+            $permintaanRacikanFinal = collect($request->permintaanracikan)->where('jumlahobat', '>', 0)->whereNotIn('kdobat', $resepKeluarRacikan)->toArray();
+            // cek pembatasan fornas ranap
+            $groupSistembayar = (int)$request->sistembayar['groups'];
+            if ($request->depo === 'Gd-04010102' && $groupSistembayar === 1) {
+                $pembatasan = self::cekPembatasanObatRanap($permintaanFinal, $request, $header);
+                $pembatasanRi = self::cekPembatasanObatRanap($permintaanRacikanFinal, $request, $header);
+                if (!empty($pembatasan['obatDibatasi']) || !empty($pembatasanRi['obatDibatasi'])) {
+                    throw new Exception('ada Pembatasan Obat Ranap, silahkan di cek kembali');
+                }
+            }
+            // cek jumlah sisa obat rajal
+
+            // cek jumlah stok
+
+
+            // simpan
+
+            // kurangi stok by fifo
+
+            // ganti flag header jadi selesai
+
+
+            DB::connection('farmasi')->commit();
+            return new JsonResponse([
+                'message' => 'Resep Sudah Diselesaikan',
+                'header' => $header,
+                'permintaan' => $permintaan,
+                'permintaanRacikan' => $permintaanRacikan,
+                'obatPermintaan' => $obatPermintaan,
+                'obatPermintaanRacikan' => $obatPermintaanRacikan,
+                'resepKeluar' => $resepKeluar,
+                'resepKeluarRacikan' => $resepKeluarRacikan,
+                'permintaanFinal' => $permintaanFinal,
+                'permintaanRacikanFinal' => $permintaanRacikanFinal,
+                'pembatasan' => $pembatasan,
+                'pembatasanRi' => $pembatasanRi,
+                'req' => $request->all(),
+            ], 410);
+        } catch (\Exception $e) {
+            DB::connection('farmasi')->rollBack();
+            return response()->json([
+                'message' =>  $e->getMessage(),
+                'line' =>  $e->getLine(),
+                'file' =>  $e->getFile(),
+                'stok' => $dataStok ?? null,
+                'pembatasan' => $pembatasan ?? null,
+                'pembatasanRi' => $pembatasanRi ?? null,
+                'trace' =>  $e->getTrace(),
+            ], 410);
+        }
+    }
+    public static function cekPembatasanObatRanap($rincian, $request, $header)
+    {
+        $headerResep = $header;
+        $obat = collect($rincian)->pluck('kdobat')->toArray();
+
+        if ($headerResep && !empty($obat)) { // !empty($obat) biar laravel ga nguery jika obat kosong
+            $kdRuang = $headerResep->ruangan;
+
+            $pembatasanFornases = RestriksiObat::where('depo', $request->depo)
+                ->whereIn('kd_obat', $obat)
+                ->orderBy('tgl_mulai_berlaku', 'desc')
+                ->get(); // ini hasilnya sudah collection jangan di collect lagi biar ga query ulang
+            $kecualiRuangans = RestriksiObatKecualiRuangan::where('depo', $request->depo)
+                ->whereIn('kd_obat', $obat)
+                ->where('kd_ruang', $kdRuang)
+                ->get(); // ini hasilnya sudah collection jangan di collect lagi biar ga query ulang
+            // exclude obat yang ada di kecuali ruangan
+            $obatKecualiRuangan = $kecualiRuangans->pluck('kd_obat')->toArray();
+            if (!empty($obatKecualiRuangan)) $obatDibatasi = $pembatasanFornases->whereNotIn('kd_obat', $obatKecualiRuangan);
+            else $obatDibatasi = $pembatasanFornases;
+            if (!empty($obatDibatasi)) {
+                // ambil obat keluar dan retur
+                $kodeObatKeluar = $obatDibatasi->pluck('kd_obat')->toArray();
+                $rincianObatKeluar = Resepkeluarrinci::where('resep_keluar_h.noreg', $request->noreg)
+                    ->leftJoin('resep_keluar_h', 'resep_keluar_r.noresep', '=', 'resep_keluar_h.noresep')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('ruangan', 'NOT LIKE', '%POL%')
+                    ->get();
+                $returObat = Returpenjualan_r::where('retur_penjualan_r.noreg', $request->noreg)
+                    ->leftJoin('retur_penjualan_h', 'retur_penjualan_r.noretur', '=', 'retur_penjualan_h.noretur')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('kdruangan', 'NOT LIKE', '%POL%')
+                    ->get();
+                // cek masing obat yang dibatasi
+                foreach ($obatDibatasi as $key) {
+                    $obatnya = collect($rincian)->where('kdobat', $key->kd_obat)->first();
+                    $jumlah = (float)$obatnya['jumlah'] ?? (float)$obatnya['jumlahobat'];
+                    $jumlahPembatasan = (int)$key->jumlah;
+                    $rincianKeluar = $rincianObatKeluar->where('kdobat', $key->kd_obat)->sum('jumlah');
+                    $retur = $returObat->where('kdobat', $key->kd_obat)->sum('jumlah_retur');
+                    $obatKeluar = (int)$rincianKeluar - (int)$retur;
+                    if (((int)$obatKeluar >= (int)$jumlahPembatasan) || ((int)$obatKeluar + (int)$jumlah > (int)$jumlahPembatasan)) {
+                        $key->jumlah_pembatasan = (int)$jumlahPembatasan;
+                        $key->obat_keluar = (int)$obatKeluar;
+                        $key->jumlah_permintaan = (int)$jumlah;
+                    }
+                }
+            }
+
+            return [
+                'pembatasanFornas' => $pembatasanFornases ?? null,
+                'kdRuang' => $kdRuang,
+                'kecualiRuangan' => $kecualiRuangans ?? null,
+                'obatKecualiRuangan' => $obatKecualiRuangan ?? null,
+                'obatDibatasi' => $obatDibatasi ?? null,
+                'kodeObatKeluar' => $kodeObatKeluar ?? null,
+                'rincianObatKeluar' => $rincianObatKeluar ?? null,
+                'returObat' => $returObat ?? null,
+                'obatnya' => $obatnya ?? null,
+            ];
+        }
+    }
+    public static function cekSisaObatRajal() {}
+    public static function cekSisaStokAlokasi() {}
     public function resepSelesai(Request $request)
     {
         $data = Resepkeluarheder::find($request->id);
@@ -2451,6 +2596,7 @@ class EresepController extends Controller
                             'tiperacikan' => $request->tiperacikan,
                             'kdobat' => $request->kdobat,
                             'nopenerimaan' => $stokItem->nopenerimaan,
+                            'nobatch' => $stokItem->nobatch,
                             'jumlahdibutuhkan' => $request->jumlahdibutuhkan,
                             'jumlah' => $pengurangan, // Perbaikan: set jumlah sesuai pengurangan
                             'harga_beli' => $stokItem->harga,
@@ -2474,6 +2620,7 @@ class EresepController extends Controller
                             'kode50' => $request->kode50,
                             'uraian50' => $request->uraian50,
                             'nopenerimaan' => $stokItem->nopenerimaan,
+                            'nobatch' => $stokItem->nobatch,
                             'jumlah' => $pengurangan, // Perbaikan: set jumlah sesuai pengurangan
                             'harga_beli' => $stokItem->harga,
                             'hpp' => $harga,

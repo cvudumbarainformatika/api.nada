@@ -416,6 +416,7 @@ class ReturpenjualanController extends Controller
                             'kode50'         => $key['mobat']['kode50'],
                             'uraian50'       => $key['mobat']['uraian50'],
                             'nopenerimaan'   => $current->nopenerimaan,
+                            'nobatch'        => $current->nobatch,
                             'jumlah_keluar'  => $ada,
                             'jumlah_retur'   => $retur,
                             'harga_beli'     => $key['harga_beli'],
