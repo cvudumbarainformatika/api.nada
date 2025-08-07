@@ -99,7 +99,7 @@ class PemakaianRuanganController extends Controller
                     $stok = Stokreal::where('kdobat', $rin['kdobat'])
                         ->where('kdruang', $request->kdruang)
                         ->where('jumlah', '>', 0)
-                        ->orderBy('tglexp', 'ASC')
+                        ->orderBy('tglpenerimaan', 'ASC')
                         ->get();
                     $index = 0;
                     $dipakai = (float)$rin['dipakai'];
@@ -112,6 +112,8 @@ class PemakaianRuanganController extends Controller
                                 'nopenerimaan' => $stok[$index]->nopenerimaan,
                                 'nobatch' => $stok[$index]->nobatch,
                                 'nodistribusi' => $stok[$index]->nodistribusi,
+                                'id_rinci_penerimaan' => $stok[$index]->id_rinci_penerimaan,
+                                'id_stok' => $stok[$index]->id,
                                 'jumlah' => $ada,
                                 'flag' => '',
                                 'created_at' => date('Y-m-d H:i:s'),
@@ -128,6 +130,8 @@ class PemakaianRuanganController extends Controller
                                 'nopenerimaan' => $stok[$index]->nopenerimaan,
                                 'nobatch' => $stok[$index]->nobatch,
                                 'nodistribusi' => $stok[$index]->nodistribusi,
+                                'id_rinci_penerimaan' => $stok[$index]->id_rinci_penerimaan,
+                                'id_stok' => $stok[$index]->id,
                                 'jumlah' => $dipakai,
                                 'flag' => '',
                                 'created_at' => date('Y-m-d H:i:s'),
@@ -152,12 +156,13 @@ class PemakaianRuanganController extends Controller
             $st = [];
             $ss = [];
             foreach ($rinc as $rin) {
-                $stok = Stokreal::where('kdobat', $rin['kd_obat'])
-                    ->where('kdruang', $request->kdruang)
-                    ->where('nopenerimaan', $rin['nopenerimaan'])
-                    ->where('nodistribusi', $rin['nodistribusi'])
-                    ->where('jumlah', '>', 0)
-                    ->first();
+                $stok = Stokreal::find($rin['id_stok']);
+                // $stok = Stokreal::where('kdobat', $rin['kd_obat'])
+                //     ->where('kdruang', $request->kdruang)
+                //     ->where('nopenerimaan', $rin['nopenerimaan'])
+                //     ->where('nodistribusi', $rin['nodistribusi'])
+                //     ->where('jumlah', '>', 0)
+                //     ->first();
                 $st[] = $stok;
                 if ($stok->jumlah > 0) {
 
@@ -208,10 +213,11 @@ class PemakaianRuanganController extends Controller
         $stok = [];
         if (count($rinci)) {
             foreach ($rinci as $rinc) {
-                $temp = Stokreal::where('kdruang', $head->kdruang)
-                    ->where('kdobat', $rinc['kd_obat'])
-                    ->where('nopenerimaan', $rinc['nopenerimaan'])
-                    ->first();
+                $temp = Stokreal::find($rinc['id_stok']);
+                // $temp = Stokreal::where('kdruang', $head->kdruang)
+                //     ->where('kdobat', $rinc['kd_obat'])
+                //     ->where('nopenerimaan', $rinc['nopenerimaan'])
+                //     ->first();
                 $total = (float)$temp->jumlah + (float) $rinc['jumlah'];
                 $temp->jumlah = $total;
                 $temp->save();
@@ -237,10 +243,11 @@ class PemakaianRuanganController extends Controller
             $head = PemakaianH::where('nopemakaian', $request->nopemakaian)->first();
             $stok = [];
             foreach ($rinci as $rinc) {
-                $temp = Stokreal::where('kdruang', $head->kdruang)
-                    ->where('kdobat', $rinc['kd_obat'])
-                    ->where('nopenerimaan', $rinc['nopenerimaan'])
-                    ->first();
+                // $temp = Stokreal::where('kdruang', $head->kdruang)
+                //     ->where('kdobat', $rinc['kd_obat'])
+                //     ->where('nopenerimaan', $rinc['nopenerimaan'])
+                //     ->first();
+                $temp = Stokreal::find($rinc['id_stok']);
                 $total = (float)$temp->jumlah + (float) $rinc['jumlah'];
                 $temp->jumlah = $total;
                 $temp->save();
