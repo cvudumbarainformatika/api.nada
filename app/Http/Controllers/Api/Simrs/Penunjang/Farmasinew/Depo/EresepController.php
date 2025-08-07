@@ -2121,7 +2121,6 @@ class EresepController extends Controller
                             $key['hpp'] = $harga;
                             $key['harga_jual'] = $hargajual;
 
-
                             $key['noresep'] = $noresep;
                             $key['satuan_racik'] = $key['satuan_racik'] ?? '';
                             $key['created_at'] = date('Y-m-d H:i:s');

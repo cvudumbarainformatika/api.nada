@@ -482,7 +482,7 @@ class DistribusigudangController extends Controller
                             ],
                             [
                                 'nobatch' => $stokItem->nobatch,
-                                'id_stok' => $stokItem->id_stok,
+                                'id_stok' => $stokItem->id,
                                 'jml' => $pengurangan,
                                 'tglpenerimaan' => $stokItem->tglpenerimaan,
                                 'harga' => $stokItem->harga ?? 0,
