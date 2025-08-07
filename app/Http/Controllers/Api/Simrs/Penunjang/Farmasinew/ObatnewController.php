@@ -20,8 +20,8 @@ class ObatnewController extends Controller
 {
     public function simpan(Request $request)
     {
+        $kdobat = $request->kd_obat ?? null;
         $validated = $request->validate([
-            'kd_obat' => 'nullable',
             'nama_obat' => 'required',
             'barcode' => 'nullable',
             'merk' => 'nullable',
@@ -55,13 +55,16 @@ class ObatnewController extends Controller
         ], [
             'nama_obat.required' => 'Nama Obat wajib diisi.'
         ]);
-        if (!$validated['kd_obat']) {
+        if (!$kdobat) {
             DB::connection('farmasi')->select('call master_obat(@nomor)');
-            $x = DB::connection('farmasi')->table('conter')->select('mobat')->get();
-            $wew = $x[0]->mobat;
+            $x = DB::connection('farmasi')->table('conter')->first();
+            if (!$x) {
+                return new JsonResponse(['message' => 'Kode obat gagal di generate'], 500);
+            }
+            $wew = $x->mobat;
             $kodeobat = FormatingHelper::mobat($wew, 'FAR');
         } else {
-            $kodeobat = $validated['kd_obat'];
+            $kodeobat = $kdobat;
         }
 
         $simpan = Mobatnew::updateOrCreate(
