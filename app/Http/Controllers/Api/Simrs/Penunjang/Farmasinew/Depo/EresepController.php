@@ -2240,23 +2240,31 @@ class EresepController extends Controller
                     ->whereIn('kdobat', $kodeObatKeluar)
                     ->where('ruangan', 'NOT LIKE', '%POL%')
                     ->get();
+                $rincianObatKeluarRac = Resepkeluarrinciracikan::where('resep_keluar_h.noreg', $request->noreg)
+                    ->leftJoin('resep_keluar_h', 'resep_keluar_racikan_r.noresep', '=', 'resep_keluar_h.noresep')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('ruangan', 'NOT LIKE', '%POL%')
+                    ->get();
                 $returObat = Returpenjualan_r::where('retur_penjualan_r.noreg', $request->noreg)
                     ->leftJoin('retur_penjualan_h', 'retur_penjualan_r.noretur', '=', 'retur_penjualan_h.noretur')
                     ->whereIn('kdobat', $kodeObatKeluar)
                     ->where('kdruangan', 'NOT LIKE', '%POL%')
                     ->get();
                 // cek masing obat yang dibatasi
+                $hasil = [];
                 foreach ($obatDibatasi as $key) {
                     $obatnya = collect($rincian)->where('kdobat', $key->kd_obat)->first();
                     $jumlah = (float)$obatnya['jumlah'] ?? (float)$obatnya['jumlahobat'];
                     $jumlahPembatasan = (int)$key->jumlah;
-                    $rincianKeluar = $rincianObatKeluar->where('kdobat', $key->kd_obat)->sum('jumlah');
+                    $rincianKeluar = $rincianObatKeluar->where('kdobat', $key->kd_obat)->sum('jumlah') ?? 0;
+                    $rincianKeluarRac = $rincianObatKeluarRac->where('kdobat', $key->kd_obat)->sum('jumlah') ?? 0;
                     $retur = $returObat->where('kdobat', $key->kd_obat)->sum('jumlah_retur');
-                    $obatKeluar = (int)$rincianKeluar - (int)$retur;
+                    $obatKeluar = (int)$rincianKeluar + (int)$rincianKeluarRac - (int)$retur;
                     if (((int)$obatKeluar >= (int)$jumlahPembatasan) || ((int)$obatKeluar + (int)$jumlah > (int)$jumlahPembatasan)) {
                         $key->jumlah_pembatasan = (int)$jumlahPembatasan;
                         $key->obat_keluar = (int)$obatKeluar;
                         $key->jumlah_permintaan = (int)$jumlah;
+                        $hasil[] = $key;
                     }
                 }
             }
@@ -2266,7 +2274,7 @@ class EresepController extends Controller
                 'kdRuang' => $kdRuang,
                 'kecualiRuangan' => $kecualiRuangans ?? null,
                 'obatKecualiRuangan' => $obatKecualiRuangan ?? null,
-                'obatDibatasi' => $obatDibatasi ?? null,
+                'obatDibatasi' => $hasil ?? null,
                 'kodeObatKeluar' => $kodeObatKeluar ?? null,
                 'rincianObatKeluar' => $rincianObatKeluar ?? null,
                 'returObat' => $returObat ?? null,
@@ -2274,7 +2282,7 @@ class EresepController extends Controller
             ];
         } else {
             return [
-                'obatDibatasi' => $obatDibatasi ?? []
+                'obatDibatasi' => $hasil ?? []
             ];
         }
     }
