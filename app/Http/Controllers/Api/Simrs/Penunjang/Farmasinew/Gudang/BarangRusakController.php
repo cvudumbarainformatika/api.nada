@@ -109,6 +109,7 @@ class BarangRusakController extends Controller
                     'isi' => $request->isi ?? 0,
                     'satuan_kcl' => $request->satuan_kcl,
                     'harga_net' => $request->harga_net,
+                    'harga_net_default' => $request->harga_net,
                     'jumlah' => $request->jumlah,
                     'status' => $request->status,
                     'user_entry' => $user['kodesimrs'],

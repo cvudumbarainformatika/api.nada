@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
 
 class StokrealController extends Controller
 {
-    public static function stokreal($nopenerimaan, $request)
+    public static function stokreal($nopenerimaan, $request, $rinci)
     {
         //return ($request->kdobat);
         $simpanstokreal = Stokrel::updateOrCreate(
@@ -31,9 +31,10 @@ class StokrealController extends Controller
                 'nopenerimaan' => $nopenerimaan,
                 'kdobat' => $request->kdobat,
                 'kdruang' => $request->kdruang,
-                'nobatch' => $request->no_batch,
+                'id_rinci_penerimaan' => $rinci->id,
             ],
             [
+                'nobatch' => $request->no_batch,
                 'tglexp' => $request->tgl_exp,
                 'harga' => $request->harga_netto_kecil,
                 'tglpenerimaan' => $request->tglpenerimaan,
