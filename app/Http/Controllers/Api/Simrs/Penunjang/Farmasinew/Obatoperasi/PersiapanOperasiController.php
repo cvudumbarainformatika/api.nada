@@ -528,32 +528,12 @@ class PersiapanOperasiController extends Controller
 
                     // pastikan jumlah distribusi lebih dari 0
                     if ($distribusi > 0) {
-                        // $stok = Stokreal::where('kdobat', $key['kd_obat'])
-                        //     ->where('kdruang', 'Gd-04010103')
-                        //     ->where('jumlah', '>', 0)
-                        //     ->orderBy('tglExp', 'ASC')
-                        //     ->get();
-                        // $stok = collect($allStok)->where('kdobat', $key['kd_obat'])->toArray();
-
-                        // return new JsonResponse([
-                        //     'message' => 'test',
-                        //     'kode' => $key['kd_obat'],
-                        //     'stok' => $stok,
-                        //     'allStok' => $allStok,
-                        // ], 410);
-
-                        // $index = 0;
 
                         while ($distribusi > 0) {
                             $stok = $col->where('kdobat', $key['kd_obat'])->first();
                             $ids =  array_column($col->toArray(), 'id');
                             $ind = array_search($stok['id'], $ids);
-                            // return new JsonResponse([
-                            //     'message' => 'test',
-                            //     'ids' => $ids,
-                            //     'stok' => $stok,
-                            //     'ind' => $ind,
-                            // ], 410);
+
                             $ada = (float)$stok['jumlah'];
                             if ($ada < $distribusi) {
                                 $temp = [
@@ -561,6 +541,8 @@ class PersiapanOperasiController extends Controller
                                     'kd_obat' => $key['kd_obat'],
                                     'nopenerimaan' => $stok['nopenerimaan'],
                                     'nobatch' => $stok['nobatch'],
+                                    'id_rinci_penerimaan' => $stok['id_rinci_penerimaan'],
+                                    'id_stok' => $stok['id_stok'],
                                     'harga' => $stok['harga'],
                                     'nodistribusi' => $stok['nodistribusi'],
                                     'jumlah' => $ada,
@@ -569,8 +551,7 @@ class PersiapanOperasiController extends Controller
                                 ];
                                 $adaSt = collect($data)->where('nopermintaan', $key['nopermintaan'])
                                     ->where('kd_obat', $key['kd_obat'])
-                                    ->where('nopenerimaan', $stok['nopenerimaan'],)
-                                    ->where('nobatch', $stok['nobatch'],)
+                                    ->where('id_rinci_penerimaan', $stok['id_rinci_penerimaan'],)
                                     ->where('nodistribusi', $stok['nodistribusi'])
                                     ->where('jumlah', $ada,)
                                     ->first();
@@ -585,6 +566,8 @@ class PersiapanOperasiController extends Controller
                                     'kd_obat' => $key['kd_obat'],
                                     'nopenerimaan' => $stok['nopenerimaan'],
                                     'nobatch' => $stok['nobatch'],
+                                    'id_rinci_penerimaan' => $stok['id_rinci_penerimaan'],
+                                    'id_stok' => $stok['id_stok'],
                                     'harga' => $stok['harga'],
                                     'nodistribusi' => $stok['nodistribusi'],
                                     'jumlah' => $distribusi,
@@ -594,8 +577,7 @@ class PersiapanOperasiController extends Controller
 
                                 $adaSt = collect($data)->where('nopermintaan', $key['nopermintaan'])
                                     ->where('kd_obat', $key['kd_obat'])
-                                    ->where('nopenerimaan', $stok['nopenerimaan'],)
-                                    ->where('nobatch', $stok['nobatch'],)
+                                    ->where('id_rinci_penerimaan', $stok['id_rinci_penerimaan'],)
                                     ->where('nodistribusi', $stok['nodistribusi'])
                                     ->where('jumlah', $distribusi,)
                                     ->first();
@@ -607,15 +589,6 @@ class PersiapanOperasiController extends Controller
                 }
             }
 
-            // return new JsonResponse([
-            //     'message' => 'test hasil',
-            //     // 'kode' => $key['kd_obat'],
-            //     'ada' => $adaSt ?? false,
-            //     'data' => $data,
-            //     'allStok' => $allStok,
-            //     'anu' => $anu,
-            //     'col' => $col,
-            // ], 410);
             // update header
             $head = PersiapanOperasi::where('nopermintaan', $request->nopermintaan)->first();
             if (!$head) {
@@ -634,12 +607,13 @@ class PersiapanOperasiController extends Controller
             // update stok
             $dataDist = PersiapanOperasiDistribusi::where('nopermintaan', $request->nopermintaan)->get();
             foreach ($dataDist as $rin) {
-                $stok = Stokreal::where('kdobat', $rin['kd_obat'])
-                    ->where('kdruang', 'Gd-04010103')
-                    ->where('nopenerimaan', $rin['nopenerimaan'])
-                    ->where('nodistribusi', $rin['nodistribusi'])
-                    ->where('jumlah', '>', 0)
-                    ->first();
+                // $stok = Stokreal::where('kdobat', $rin['kd_obat'])
+                //     ->where('kdruang', 'Gd-04010103')
+                //     ->where('nopenerimaan', $rin['nopenerimaan'])
+                //     ->where('nodistribusi', $rin['nodistribusi'])
+                //     ->where('jumlah', '>', 0)
+                //     ->first();
+                $stok = Stokreal::find($rin['id_stok']);
                 if (!$stok) {
                     return new JsonResponse(['message' => 'Data stok tidak ditemukan'], 410);
                 }
@@ -833,6 +807,8 @@ class PersiapanOperasiController extends Controller
                             'nopenerimaan' => $stok[$index]->nopenerimaan,
                             'nodistribusi' => $stok[$index]->nodistribusi,
                             'nobatch' => $stok[$index]->nobatch,
+                            'id_rinci_penerimaan' => $stok['id_rinci_penerimaan'],
+                            'id_stok' => $stok['id_stok'],
                             'harga' => $stok[$index]->harga,
                             'jumlah' => $ada,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -840,9 +816,8 @@ class PersiapanOperasiController extends Controller
                         ];
                         $adaSt = collect($data)->where('nopermintaan', $request->nopermintaan)
                             ->where('kd_obat', $request->kodeobat)
-                            ->where('nopenerimaan', $stok[$index]->nopenerimaan,)
+                            ->where('id_rinci_penerimaan', $stok['id_rinci_penerimaan'],)
                             ->where('nodistribusi', $stok[$index]->nodistribusi)
-                            ->where('nobatch', $stok[$index]->nobatch)
                             ->where('jumlah', $ada,)
                             ->first();
                         if (!$adaSt) $dist[] = $temp;
@@ -857,6 +832,8 @@ class PersiapanOperasiController extends Controller
                             'nopenerimaan' => $stok[$index]->nopenerimaan,
                             'nodistribusi' => $stok[$index]->nodistribusi,
                             'nobatch' => $stok[$index]->nobatch,
+                            'id_rinci_penerimaan' => $stok['id_rinci_penerimaan'],
+                            'id_stok' => $stok['id_stok'],
                             'harga' => $stok[$index]->harga,
                             'jumlah' => $distribusi,
                             'created_at' => date('Y-m-d H:i:s'),
@@ -864,9 +841,8 @@ class PersiapanOperasiController extends Controller
                         ];
                         $adaSt = collect($data)->where('nopermintaan', $request->nopermintaan)
                             ->where('kd_obat', $request->kodeobat)
-                            ->where('nopenerimaan', $stok[$index]->nopenerimaan,)
+                            ->where('id_rinci_penerimaan', $stok['id_rinci_penerimaan'],)
                             ->where('nodistribusi', $stok[$index]->nodistribusi)
-                            ->where('nobatch', $stok[$index]->nobatch)
                             ->where('jumlah', $distribusi,)
                             ->first();
                         if (!$adaSt) $dist[] = $temp;
@@ -883,13 +859,14 @@ class PersiapanOperasiController extends Controller
             // update stok
             $dataDist = PersiapanOperasiDistribusi::where('nopermintaan', $request->nopermintaan)->where('kd_obat', $request->kodeobat)->get();
             foreach ($dataDist as $rin) {
-                $stok = Stokreal::where('kdobat', $rin['kd_obat'])
-                    ->where('kdruang', 'Gd-04010103')
-                    ->where('nopenerimaan', $rin['nopenerimaan'])
-                    ->when($rin['nodistribusi'] !== '', function ($x) use ($rin) {
-                        $x->where('nodistribusi', $rin['nodistribusi']);
-                    })
-                    ->first();
+                // $stok = Stokreal::where('kdobat', $rin['kd_obat'])
+                //     ->where('kdruang', 'Gd-04010103')
+                //     ->where('nopenerimaan', $rin['nopenerimaan'])
+                //     ->when($rin['nodistribusi'] !== '', function ($x) use ($rin) {
+                //         $x->where('nodistribusi', $rin['nodistribusi']);
+                //     })
+                //     ->first();
+                $stok = Stokreal::fInd($rin['id_stok']);
 
                 if ($stok->jumlah <= 0) {
                     return new JsonResponse(['message' => 'Data stok kurang dari 0'], 410);
@@ -1130,23 +1107,21 @@ class PersiapanOperasiController extends Controller
                             'jumlah_retur' => $key->jumlah,
                             'tgl_retur' => date('Y-m-d H:i:s')
                         ]);
-                        $stok = Stokreal::where('kdobat', $key->kd_obat)
-                            ->where('nopenerimaan', $key->nopenerimaan)
-                            ->when(!empty($key->nodistribusi), function ($x) use ($key) {
-                                $x->where('nodistribusi', $key->nodistribusi);
-                            })
-                            ->when(!empty($key->nobatch), function ($x) use ($key) {
-                                $x->where('nobatch', $key->nobatch);
-                            })
-                            ->where('kdruang', 'Gd-04010103')
-                            ->first();
+                        // $stok = Stokreal::where('kdobat', $key->kd_obat)
+                        //     ->where('nopenerimaan', $key->nopenerimaan)
+                        //     ->when(!empty($key->nodistribusi), function ($x) use ($key) {
+                        //         $x->where('nodistribusi', $key->nodistribusi);
+                        //     })
+                        //     ->when(!empty($key->nobatch), function ($x) use ($key) {
+                        //         $x->where('nobatch', $key->nobatch);
+                        //     })
+                        //     ->where('kdruang', 'Gd-04010103')
+                        //     ->first();
+                        $stok = Stokreal::find($key->id_stok);
                         if (!$stok) {
                             $stok2 = Stokreal::where('kdobat', $key->kd_obat)
                                 ->where('nopenerimaan', $key->nopenerimaan)
-
-                                ->when(!empty($key->nobatch), function ($x) use ($key) {
-                                    $x->where('nobatch', $key->nobatch);
-                                })
+                                ->where('id_rinci_penerimaan', $key->id_rinci_penerimaan)
                                 ->where('kdruang', 'Gd-04010103')
                                 ->first();
                             if (!$stok2) {
@@ -1264,6 +1239,8 @@ class PersiapanOperasiController extends Controller
                         'uraian50' => $masterObat->uraian50,
                         'nopenerimaan' => $dist[$index]->nopenerimaan,
                         'nobatch' => $dist[$index]->nobatch,
+                        'id_rinci_penerimaan' => $dist[$index]->id_rinci_penerimaan,
+                        'id_stok' => $dist[$index]->id_stok,
                         'nilai_r' => 300,
                         'jumlah' => $ada,
                         'harga_beli' => $hargaBeli->harga ?? 0,
@@ -1295,6 +1272,8 @@ class PersiapanOperasiController extends Controller
                         'uraian50' => $masterObat->uraian50,
                         'nopenerimaan' => $dist[$index]->nopenerimaan,
                         'nobatch' => $dist[$index]->nobatch,
+                        'id_rinci_penerimaan' => $dist[$index]->id_rinci_penerimaan,
+                        'id_stok' => $dist[$index]->id_stok,
                         'nilai_r' => 300,
                         'jumlah' => $masuk,
                         'harga_beli' => $hargaBeli->harga ?? 0,
@@ -1410,13 +1389,14 @@ class PersiapanOperasiController extends Controller
                         $distItem->save();
                         if ($detItem->jumlah_resep > 0) {
                             if (!$hargaBeli) {
-                                $dfthrg = Stokreal::where('kdobat', $distItem->kd_obat)
-                                    ->where('nopenerimaan', $distItem->nopenerimaan)
-                                    ->where('kdruang', 'Gd-04010103')
-                                    ->when(!empty($distItem->nobatch), function ($x) use ($distItem) {
-                                        $x->where('nobatch', $distItem->nobatch);
-                                    })
-                                    ->first();
+                                // $dfthrg = Stokreal::where('kdobat', $distItem->kd_obat)
+                                //     ->where('nopenerimaan', $distItem->nopenerimaan)
+                                //     ->where('kdruang', 'Gd-04010103')
+                                //     ->when(!empty($distItem->nobatch), function ($x) use ($distItem) {
+                                //         $x->where('nobatch', $distItem->nobatch);
+                                //     })
+                                //     ->first();
+                                $dfthrg = Stokreal::find($distItem->id_stok);
                                 $hargaBeli = $dfthrg->harga ?? 0;
                             }
                             $jmlResep = $detItem->jumlah_resep;
@@ -1436,6 +1416,8 @@ class PersiapanOperasiController extends Controller
                                     'uraian50' => $masterObat->uraian50,
                                     'nopenerimaan' => $distItem->nopenerimaan,
                                     'nobatch' => $distItem->nobatch,
+                                    'id_rinci_penerimaan' => $distItem->id_rinci_penerimaan,
+                                    'id_stok' => $distItem->id_stok,
                                     'nilai_r' => 300,
                                     'jumlah' => $jmlResep,
                                     'harga_beli' => $hargaBeli,
@@ -1451,7 +1433,7 @@ class PersiapanOperasiController extends Controller
                                 $resepKeluar[] = $rin;
                             }
                         }
-                        $this->updateStok($distItem->kd_obat, $distItem->nopenerimaan, $distItem->nodistribusi, $distItem->nobatch, $retu);
+                        $this->updateStok($distItem->kd_obat, $distItem->id_stok, $distItem->nopenerimaan, $distItem->nodistribusi, $distItem->nobatch, $retu);
                         $kem -= $retu;
                     }
                 }
@@ -1622,7 +1604,7 @@ class PersiapanOperasiController extends Controller
                 ]);
 
 
-                $this->updateStok($dist->kd_obat, $dist->nopenerimaan, $dist->nodistribusi, $dist->nobatch, $jumlah);
+                $this->updateStok($dist->kd_obat, $dist->id_stok, $dist->nopenerimaan, $dist->nodistribusi, $dist->nobatch, $jumlah);
                 $kembali -= $jumlah;
             }
         }
@@ -1663,28 +1645,29 @@ class PersiapanOperasiController extends Controller
                 'tgl_retur' => now()
             ]);
 
-            $this->updateStok($dist->kd_obat, $dist->nopenerimaan, $dist->nodistribusi, $dist->nobatch, $returSekarang);
+            $this->updateStok($dist->kd_obat, $dist->id_stok, $dist->nopenerimaan, $dist->nodistribusi, $dist->nobatch, $returSekarang);
             $kurang -= $returSekarang;
             $ind++;
         }
     }
 
-    private function updateStok($kdobat, $nopenerimaan, $nodistribusi, $nobatch, $jumlah)
+    private function updateStok($kdobat, $idStok, $nopenerimaan, $nodistribusi, $nobatch, $jumlah)
     {
         if ($jumlah < 0) {
             throw new \Exception("Jumlah tidak boleh negatif");
         }
-        $stok = Stokreal::where('kdobat', $kdobat)
-            ->where('nopenerimaan', $nopenerimaan)
-            ->when(!empty($nodistribusi), function ($q) use ($nodistribusi) {
-                $q->where('nodistribusi', $nodistribusi);
-            })
-            ->when(!empty($nobatch) && $nobatch != '-', function ($q) use ($nobatch) {
-                $q->where('nobatch', $nobatch);
-            })
-            ->where('kdruang', 'Gd-04010103')
-            ->lockForUpdate() // tambahin ini untuk cegah race condition
-            ->first();
+        $stok = Stokreal::finc($idStok);
+        // $stok = Stokreal::where('kdobat', $kdobat)
+        //     ->where('nopenerimaan', $nopenerimaan)
+        //     ->when(!empty($nodistribusi), function ($q) use ($nodistribusi) {
+        //         $q->where('nodistribusi', $nodistribusi);
+        //     })
+        //     ->when(!empty($nobatch) && $nobatch != '-', function ($q) use ($nobatch) {
+        //         $q->where('nobatch', $nobatch);
+        //     })
+        //     ->where('kdruang', 'Gd-04010103')
+        //     ->lockForUpdate() // tambahin ini untuk cegah race condition
+        //     ->first();
 
         if ($stok) {
             $stok->jumlah = (float)$stok->jumlah + $jumlah;
