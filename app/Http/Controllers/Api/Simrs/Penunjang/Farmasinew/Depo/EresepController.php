@@ -3625,6 +3625,8 @@ class EresepController extends Controller
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
                             $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $caristok[$index]->jumlah;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3647,6 +3649,8 @@ class EresepController extends Controller
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
                             $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $masuk;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3699,6 +3703,8 @@ class EresepController extends Controller
                             $sisax = $masuk - $sisa;
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
                             $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $caristok[$index]->jumlah;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3721,6 +3727,8 @@ class EresepController extends Controller
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
                             $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $masuk;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
