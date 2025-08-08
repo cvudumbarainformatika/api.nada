@@ -53,6 +53,9 @@ class RuanganPoliController extends Controller
         $pri = $request->rs1 ?? '';
 
         $statt = $request->rs4 ?? null;
+        if ($pri == 'POL014') {
+            return new JsonResponse(['message' => 'Data tidak boleh di edit'], 410);
+        }
         $validated = $request->validate([
             'rs2' => 'required',
             'rs3' => 'nullable',
