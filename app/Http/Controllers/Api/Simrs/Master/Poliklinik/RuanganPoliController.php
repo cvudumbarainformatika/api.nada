@@ -32,6 +32,7 @@ class RuanganPoliController extends Controller
                     ->orWhere('rs7', 'Like', '%' . request('q') . '%')
                     ->orWhere('panggil_antrian', 'Like', '%' . request('q') . '%');
             })
+            ->where('rs1', '!=', 'POL014')
             ->orderBy($req['order_by'], $req['sort'])
             ->whereNull('hidden');
 
