@@ -20,8 +20,8 @@ class ObatnewController extends Controller
 {
     public function simpan(Request $request)
     {
+        $kdobat = $request->kd_obat ?? null;
         $validated = $request->validate([
-            'kd_obat' => 'nullable',
             'nama_obat' => 'required',
             'barcode' => 'nullable',
             'merk' => 'nullable',
@@ -55,43 +55,57 @@ class ObatnewController extends Controller
         ], [
             'nama_obat.required' => 'Nama Obat wajib diisi.'
         ]);
-        if (!$validated['kd_obat']) {
-            DB::connection('farmasi')->select('call master_obat(@nomor)');
-            $x = DB::connection('farmasi')->table('conter')->select('mobat')->get();
-            $wew = $x[0]->mobat;
-            $kodeobat = FormatingHelper::mobat($wew, 'FAR');
-        } else {
-            $kodeobat = $validated['kd_obat'];
-        }
+        try {
+            DB::connection('farmasi')->beginTransaction();
+            if (!$kdobat) {
+                DB::connection('farmasi')->select('call master_obat(@nomor)');
+                $x = DB::connection('farmasi')->table('conter')->first();
+                if (!$x) {
+                    return new JsonResponse(['message' => 'Kode obat gagal di generate'], 500);
+                }
+                $wew = $x->mobat;
+                $kodeobat = FormatingHelper::mobat($wew, 'FAR');
+            } else {
+                $kodeobat = $kdobat;
+            }
 
-        $simpan = Mobatnew::updateOrCreate(
-            ['kd_obat' => $kodeobat],
-            $validated
-        );
-        if ($request->has('kelasterapis')) {
-            foreach ($request->kelasterapis as $key) {
-                Mapingkelasterapi::firstOrCreate([
-                    'kd_obat' => $simpan->kd_obat,
-                    'kelas_terapi' => $key['kelasterapi']
-                ]);
+            $simpan = Mobatnew::updateOrCreate(
+                ['kd_obat' => $kodeobat],
+                $validated
+            );
+            if ($request->has('kelasterapis')) {
+                foreach ($request->kelasterapis as $key) {
+                    Mapingkelasterapi::firstOrCreate([
+                        'kd_obat' => $simpan->kd_obat,
+                        'kelas_terapi' => $key['kelasterapi']
+                    ]);
+                }
             }
-        }
-        if ($request->has('indikasis')) {
-            foreach ($request->indikasis as $key) {
-                IndikasiObat::firstOrCreate([
-                    'kd_obat' => $simpan->kd_obat,
-                    'indikasi' => $key['indikasi']
-                ]);
+            if ($request->has('indikasis')) {
+                foreach ($request->indikasis as $key) {
+                    IndikasiObat::firstOrCreate([
+                        'kd_obat' => $simpan->kd_obat,
+                        'indikasi' => $key['indikasi']
+                    ]);
+                }
             }
+            if (!$simpan) {
+                return new JsonResponse(['message' => 'data gagal disimpan'], 500);
+            }
+            $simpan->load('mkelasterapi', 'indikasi');
+            DB::connection('farmasi')->commit();
+            return new JsonResponse([
+                'message' => 'data berhasil disimpan',
+                'data' => $simpan
+            ], 200);
+        } catch (\Exception $e) {
+            DB::connection('farmasi')->rollBack();
+            return new JsonResponse([
+                'message' => $e->getMessage(),
+                'line' =>  $e->getLine(),
+                'file' =>  $e->getFile(),
+            ], 500);
         }
-        if (!$simpan) {
-            return new JsonResponse(['message' => 'data gagal disimpan'], 500);
-        }
-        $simpan->load('mkelasterapi', 'indikasi');
-        return new JsonResponse([
-            'message' => 'data berhasil disimpan',
-            'data' => $simpan
-        ], 200);
     }
 
     public function hapus(Request $request)

@@ -32,6 +32,7 @@ use App\Models\Simrs\Penunjang\Laborat\Laboratpemeriksaan;
 use App\Models\Simrs\Rajal\KunjunganPoli;
 use App\Models\SistemBayar;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -1903,6 +1904,489 @@ class EresepController extends Controller
         }
         return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
     }
+    public function resepSimpanSelesai(Request $request)
+    {
+        // cek header flag, sudah selesai apa belum
+        $header = Resepkeluarheder::where('noresep', $request->noresep)->first();
+        if ($header->flag === '3') {
+            return new JsonResponse([
+                'message' => 'Resep Sudah Diselesaikan',
+                'req' => $request->all(),
+                'data' => $header,
+            ], 200);
+        }
+        // step --- cek obat yang sudah di simpan ---
+        // ambil permintaan yang lebih dari 0
+        $permintaan = collect($request->permintaanresep)->where('jumlah', '>', 0)->toArray();
+        $permintaanRacikan = collect($request->permintaanracikan)->where('jumlahobat', '>', 0)->toArray();
+        try {
+            DB::connection('farmasi')->beginTransaction();
+            // ambil kode obat
+            $obatPermintaan = array_unique(array_column($permintaan, 'kdobat'));
+            $obatPermintaanRacikan = array_unique(array_column($permintaanRacikan, 'kdobat'));
+
+            // ambil obat yang sudah di simpan, jika ada
+            $resepKeluar = [];
+            $resepKeluarRacikan = [];
+            if (!empty($obatPermintaan)) $resepKeluar = Resepkeluarrinci::whereIn('kdobat', $obatPermintaan)->where('noresep', $request->noresep)->pluck('kdobat');
+            if (!empty($obatPermintaanRacikan)) $resepKeluarRacikan = Resepkeluarrinciracikan::whereIn('kdobat', $obatPermintaanRacikan)->where('noresep', $request->noresep)->pluck('kdobat');
+
+            // keluarkan dari permintaan jika sudah ada di resep keluar
+            $permintaanFinal = collect($request->permintaanresep)->where('jumlah', '>', 0)->whereNotIn('kdobat', $resepKeluar)->toArray();
+            $permintaanRacikanFinal = collect($request->permintaanracikan)->where('jumlahobat', '>', 0)->whereNotIn('kdobat', $resepKeluarRacikan)->toArray();
+            // cek pembatasan fornas ranap
+            $groupSistembayar = (int)$request->sistembayar['groups'];
+            if ($request->depo === 'Gd-04010102' && $groupSistembayar === 1) {
+                $pembatasan = self::cekPembatasanObatRanap($permintaanFinal, $request, $header);
+                $pembatasanRi = self::cekPembatasanObatRanap($permintaanRacikanFinal, $request, $header);
+                if (collect($pembatasan['obatDibatasi'])->isNotEmpty() || collect($pembatasanRi['obatDibatasi'])->isNotEmpty()) {
+                    throw new Exception('ada Pembatasan Obat Ranap, silahkan di cek kembali');
+                }
+            }
+            // cek jumlah sisa obat rajal
+            if ($request->depo === 'Gd-05010101') {
+                $sisaObat = self::cekSisaObatRajal($permintaanFinal, $request->norm);
+            }
+            // cek jumlah stok
+            $alokasi = self::cekSisaStokAlokasi($permintaanFinal, $request->depo);
+            $alokasiRac = self::cekSisaStokAlokasi($permintaanRacikanFinal, $request->depo);
+            if ($alokasi['cukup'] === false || $alokasiRac['cukup'] === false) {
+                throw new Exception('Stok tidak mencukupi, silahkan di cek kembali');
+            }
+
+
+            if (empty($permintaanFinal) && empty($permintaanRacikanFinal) && empty($resepKeluar) && empty($resepKeluarRacikan)) {
+                throw new Exception('Permintaan obat kosong, silahkan di cek kembali');
+            }
+            // bentuk Array
+            $noresep = $request->noresep;
+            $resep = [];
+            $resepRacikan = [];
+            if (count($permintaanFinal) > 0) {
+                foreach ($permintaanFinal as $key) {
+
+                    $jumlahDiminta = $key['jumlah'];
+
+                    $caristok = Stokreal::where('kdobat', $key['kdobat'])
+                        ->where('kdruang', $request->depo)
+                        ->where('jumlah', '>', 0)
+                        ->orderBy('tglpenerimaan')
+                        ->lockForUpdate()
+                        ->get();
+                    $index = 0;
+                    $masuk = $jumlahDiminta;
+                    while ($masuk > 0) {
+                        if (!isset($caristok[$index])) {
+                            throw new Exception('Terjadi kesalahan saat alokasi stok. Data stok ' . $key['mobat']['nama_obat'] ?? '' . ' tidak ditemukan.', 500);
+                        }
+                        $sisa = $caristok[$index]->jumlah;
+                        $har = HargaHelper::getHarga($key['kdobat'], $groupSistembayar);
+                        $res = $har['res'];
+                        if ($res) {
+                            throw new Exception($har['message'], 410);
+                        }
+                        $hargajual = $har['hargaJual'];
+                        $harga = $har['harga'];
+                        if ($sisa < $masuk) {
+                            $sisax = $masuk - $sisa;
+
+                            $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
+                            $key['jumlah'] = $caristok[$index]->jumlah;
+                            $key['harga_beli'] = $caristok[$index]->harga;
+                            $key['hpp'] = $harga;
+                            $key['harga_jual'] = $hargajual;
+                            $key['noresep'] = $noresep;
+                            $key['created_at'] = date('Y-m-d H:i:s');
+                            $key['updated_at'] = date('Y-m-d H:i:s');
+
+                            $stok = Stokreal::where('id', $caristok[$index]->id)
+                                ->update(['jumlah' => 0]);
+
+                            $masuk = $sisax;
+                            $index = $index + 1;
+                        } else {
+                            $sisax = $sisa - $masuk;
+
+                            $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
+                            $key['jumlah'] = $masuk;
+                            $key['harga_beli'] = $caristok[$index]->harga;
+                            $key['hpp'] = $harga;
+                            $key['harga_jual'] = $hargajual;
+
+
+                            $key['noresep'] = $noresep;
+                            $key['created_at'] = date('Y-m-d H:i:s');
+                            $key['updated_at'] = date('Y-m-d H:i:s');
+
+                            $stok = Stokreal::where('id', $caristok[$index]->id)
+                                ->update(['jumlah' => $sisax]);
+                            $masuk = 0;
+                        }
+                        $key['user'] = auth()->user()->pegawai_id;
+                        $resep[] = [
+                            'noreg' => $key['noreg'],
+                            'noresep' => $key['noresep'],
+                            'kdobat' => $key['kdobat'],
+                            'kandungan' => $key['kandungan'] ?? '',
+                            'fornas' => $key['fornas'] ?? '',
+                            'forkit' => $key['forkit'] ?? '',
+                            'generik' => $key['generik'] ?? '',
+                            'kode108' => $key['kode108'],
+                            'uraian108' => $key['uraian108'],
+                            'kode50' => $key['kode50'],
+                            'uraian50' => $key['uraian50'],
+                            'nopenerimaan' => $key['nopenerimaan'],
+                            'nobatch' => $key['nobatch'],
+                            'id_rinci_penerimaan' => $key['id_rinci_penerimaan'],
+                            'id_stok' => $key['id_stok'],
+                            'jumlah' => $key['jumlah'],
+                            'harga_beli' => $key['harga_beli'],
+                            'hpp' => $key['hpp'],
+                            'harga_jual' => $key['harga_jual'],
+                            'nilai_r' => $key['r'],
+                            'aturan' => $key['aturan'],
+                            'konsumsi' => $key['konsumsi'],
+                            'keterangan' => $key['keterangan'],
+                            'user' => $key['user'],
+                            'keterangan_bypass' => $key['keterangan_bypass'],
+                            'created_at' => $key['created_at'],
+                            'updated_at' => $key['updated_at'],
+                        ];
+                    }
+                }
+            }
+            if (count($permintaanRacikanFinal) > 0) {
+                foreach ($permintaanRacikanFinal as $key) {
+                    $jumlahDiminta = $key['jumlahobat'];
+                    $caristok = Stokreal::where('kdobat', $key['kdobat'])
+                        ->where('kdruang', $request->depo)
+                        ->where('jumlah', '>', 0)
+                        ->orderBy('tglpenerimaan')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $index = 0;
+                    $masuk = $jumlahDiminta;
+                    while ($masuk > 0) {
+                        if (!isset($caristok[$index])) {
+                            throw new Exception('Terjadi kesalahan saat alokasi stok. Data stok ' . $key['mobat']['nama_obat'] ?? '' . ' tidak ditemukan.', 500);
+                        }
+                        $sisa = $caristok[$index]->jumlah;
+                        $har = HargaHelper::getHarga($key['kdobat'], $groupSistembayar);
+                        $res = $har['res'];
+                        if ($res) {
+                            throw new Exception($har['message'], 410);
+                        }
+                        $hargajual = $har['hargaJual'];
+                        $harga = $har['harga'];
+                        $harga = $har['harga'];
+                        if ($sisa < $masuk) {
+                            $sisax = $masuk - $sisa;
+                            $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
+                            $key['jumlah'] = $caristok[$index]->jumlah;
+                            $key['harga_beli'] = $caristok[$index]->harga;
+                            $key['hpp'] = $harga;
+                            $key['harga_jual'] = $hargajual;
+
+                            $key['jumlahdibutuhkan'] = $key['jumlahdibutuhkan'] ?? 0;
+                            $key['noresep'] = $noresep;
+                            $key['satuan_racik'] = $key['satuan_racik'] ?? '';
+                            $key['created_at'] = date('Y-m-d H:i:s');
+                            $key['updated_at'] = date('Y-m-d H:i:s');
+
+
+                            Stokreal::where('id', $caristok[$index]->id)
+                                ->update(['jumlah' => 0]);
+
+                            $masuk = $sisax;
+                            $index = $index + 1;
+                        } else {
+                            $sisax = $sisa - $masuk;
+
+                            $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
+                            $key['jumlah'] = $masuk;
+                            $key['harga_beli'] = $caristok[$index]->harga;
+                            $key['hpp'] = $harga;
+                            $key['harga_jual'] = $hargajual;
+
+                            $key['noresep'] = $noresep;
+                            $key['satuan_racik'] = $key['satuan_racik'] ?? '';
+                            $key['created_at'] = date('Y-m-d H:i:s');
+                            $key['updated_at'] = date('Y-m-d H:i:s');
+
+                            Stokreal::where('id', $caristok[$index]->id)
+                                ->update(['jumlah' => $sisax]);
+
+                            $masuk = 0;
+                        }
+                        $key['user'] = auth()->user()->pegawai_id;
+                        $resepRacikan[] = [
+                            'noreg' => $key['noreg'],
+                            'noresep' => $key['noresep'],
+                            'tiperacikan' => $key['tiperacikan'],
+                            'namaracikan' => $key['namaracikan'],
+                            'kdobat' => $key['kdobat'],
+                            'nopenerimaan' => $key['nopenerimaan'],
+                            'nobatch' => $key['nobatch'],
+                            'id_rinci_penerimaan' => $key['id_rinci_penerimaan'],
+                            'id_stok' => $key['id_stok'],
+                            'jumlahdibutuhkan' => $key['jumlahdibutuhkan'],
+                            'jumlah' => $key['jumlah'],
+                            'satuan_racik' => $key['satuan_racik'],
+                            'harga_beli' => $key['harga_beli'],
+                            'hpp' => $key['hpp'],
+                            'harga_jual' => $key['harga_jual'],
+                            'nilai_r' => $key['r'],
+                            'user' => $key['user'],
+                            'keterangan_bypass' => $key['keterangan_bypass'],
+                            'created_at' => $key['created_at'],
+                            'updated_at' => $key['updated_at'],
+
+                        ];
+                    }
+                }
+            }
+            // simpan
+
+            if (count($resep) > 0) $resepKeluar = Resepkeluarrinci::insert($resep);
+            if (count($resepRacikan) > 0) $resepKeluarRacikan = Resepkeluarrinciracikan::insert($resepRacikan);
+
+            // ganti flag header jadi selesai
+            $header->update([
+                'flag' => '3',
+                'tgl_selesai' => date('Y-m-d H:i:s'),
+                'user' => auth()->user()->pegawai_id
+
+            ]);
+
+            DB::connection('farmasi')->commit();
+            return new JsonResponse([
+                'message' => 'Resep Sudah Diselesaikan',
+                'data' => $header,
+                'permintaan' => $permintaan,
+                'permintaanRacikan' => $permintaanRacikan,
+                'obatPermintaan' => $obatPermintaan,
+                'obatPermintaanRacikan' => $obatPermintaanRacikan,
+                'resepKeluar' => $resepKeluar,
+                'resepKeluarRacikan' => $resepKeluarRacikan,
+                'permintaanFinal' => $permintaanFinal,
+                'permintaanRacikanFinal' => $permintaanRacikanFinal,
+                'pembatasan' => $pembatasan ?? null,
+                'pembatasanRi' => $pembatasanRi ?? null,
+                'sisaObat' => $sisaObat ?? null,
+                'alokasi' => $alokasi ?? null,
+                'alokasiRac' => $alokasiRac ?? null,
+                'resep' => $resep ?? null,
+                'resepRacikan' => $resepRacikan ?? null,
+                'req' => $request->all(),
+            ]);
+        } catch (\Exception $e) {
+            DB::connection('farmasi')->rollBack();
+            return response()->json([
+                'message' =>  $e->getMessage(),
+                'line' =>  $e->getLine(),
+                'file' =>  $e->getFile(),
+                'stok' => $dataStok ?? null,
+                'pembatasan' => $pembatasan ?? null,
+                'pembatasanRi' => $pembatasanRi ?? null,
+                'alokasi' => $alokasi ?? null,
+                'alokasiRac' => $alokasiRac ?? null,
+                'resep' => $resep ?? null,
+                'resepRacikan' => $resepRacikan ?? null,
+                // 'cek' => (collect($pembatasan['obatDibatasi'])->isNotEmpty()),
+                // 'cekRi' => (!empty($pembatasanRi['obatDibatasi'])),
+
+                'trace' =>  $e->getTrace(),
+            ], 410);
+        }
+    }
+    public static function cekPembatasanObatRanap($rincian, $request, $header)
+    {
+        $headerResep = $header;
+        $obat = collect($rincian)->pluck('kdobat')->toArray();
+
+        if ($headerResep && !empty($obat)) { // !empty($obat) biar laravel ga nguery jika obat kosong
+            $kdRuang = $headerResep->ruangan;
+
+            $pembatasanFornases = RestriksiObat::where('depo', $request->depo)
+                ->whereIn('kd_obat', $obat)
+                ->orderBy('tgl_mulai_berlaku', 'desc')
+                ->get(); // ini hasilnya sudah collection jangan di collect lagi biar ga query ulang
+            $kecualiRuangans = RestriksiObatKecualiRuangan::where('depo', $request->depo)
+                ->whereIn('kd_obat', $obat)
+                ->where('kd_ruang', $kdRuang)
+                ->get(); // ini hasilnya sudah collection jangan di collect lagi biar ga query ulang
+            // exclude obat yang ada di kecuali ruangan
+            $obatKecualiRuangan = $kecualiRuangans->pluck('kd_obat')->toArray();
+            if (!empty($obatKecualiRuangan)) $obatDibatasi = $pembatasanFornases->whereNotIn('kd_obat', $obatKecualiRuangan);
+            else $obatDibatasi = $pembatasanFornases;
+            if (!empty($obatDibatasi)) {
+                // ambil obat keluar dan retur
+                $kodeObatKeluar = $obatDibatasi->pluck('kd_obat')->toArray();
+                $rincianObatKeluar = Resepkeluarrinci::where('resep_keluar_h.noreg', $request->noreg)
+                    ->leftJoin('resep_keluar_h', 'resep_keluar_r.noresep', '=', 'resep_keluar_h.noresep')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('ruangan', 'NOT LIKE', '%POL%')
+                    ->get();
+                $rincianObatKeluarRac = Resepkeluarrinciracikan::where('resep_keluar_h.noreg', $request->noreg)
+                    ->leftJoin('resep_keluar_h', 'resep_keluar_racikan_r.noresep', '=', 'resep_keluar_h.noresep')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('ruangan', 'NOT LIKE', '%POL%')
+                    ->get();
+                $returObat = Returpenjualan_r::where('retur_penjualan_r.noreg', $request->noreg)
+                    ->leftJoin('retur_penjualan_h', 'retur_penjualan_r.noretur', '=', 'retur_penjualan_h.noretur')
+                    ->whereIn('kdobat', $kodeObatKeluar)
+                    ->where('kdruangan', 'NOT LIKE', '%POL%')
+                    ->get();
+                // cek masing obat yang dibatasi
+                $hasil = [];
+                foreach ($obatDibatasi as $key) {
+                    $obatnya = collect($rincian)->where('kdobat', $key->kd_obat)->first();
+                    $jumlah = (float)$obatnya['jumlah'] ?? (float)$obatnya['jumlahobat'];
+                    $jumlahPembatasan = (int)$key->jumlah;
+                    $rincianKeluar = $rincianObatKeluar->where('kdobat', $key->kd_obat)->sum('jumlah') ?? 0;
+                    $rincianKeluarRac = $rincianObatKeluarRac->where('kdobat', $key->kd_obat)->sum('jumlah') ?? 0;
+                    $retur = $returObat->where('kdobat', $key->kd_obat)->sum('jumlah_retur');
+                    $obatKeluar = (int)$rincianKeluar + (int)$rincianKeluarRac - (int)$retur;
+                    if (((int)$obatKeluar >= (int)$jumlahPembatasan) || ((int)$obatKeluar + (int)$jumlah > (int)$jumlahPembatasan)) {
+                        $key->jumlah_pembatasan = (int)$jumlahPembatasan;
+                        $key->obat_keluar = (int)$obatKeluar;
+                        $key->jumlah_permintaan = (int)$jumlah;
+                        $hasil[] = $key;
+                    }
+                }
+            }
+
+            return [
+                'pembatasanFornas' => $pembatasanFornases ?? null,
+                'kdRuang' => $kdRuang,
+                'kecualiRuangan' => $kecualiRuangans ?? null,
+                'obatKecualiRuangan' => $obatKecualiRuangan ?? null,
+                'obatDibatasi' => $hasil ?? null,
+                'kodeObatKeluar' => $kodeObatKeluar ?? null,
+                'rincianObatKeluar' => $rincianObatKeluar ?? null,
+                'returObat' => $returObat ?? null,
+                'obatnya' => $obatnya ?? null,
+            ];
+        } else {
+            return [
+                'obatDibatasi' => $hasil ?? []
+            ];
+        }
+    }
+    public static function cekSisaObatRajal($data, $norm)
+    {
+        // cek master
+
+        $kdobat = collect($data)->pluck('kdobat')->toArray();
+        $masters = Mobatnew::select('kandungan', 'kd_obat')->whereIn('kd_obat', $kdobat)->get();
+        $allResep = Resepkeluarheder::select(
+            'resep_keluar_h.noresep as noresep',
+            'resep_keluar_h.tgl_selesai as tgl',
+            'resep_keluar_r.konsumsi',
+            'resep_keluar_r.kdobat',
+            'new_masterobat.kandungan',
+            DB::raw('(DATEDIFF(CURRENT_DATE(), resep_keluar_h.tgl)+1) as selisih')
+        )
+            ->leftJoin('resep_keluar_r', 'resep_keluar_h.noresep', '=', 'resep_keluar_r.noresep')
+            ->leftJoin('new_masterobat', 'new_masterobat.kd_obat', '=', 'resep_keluar_r.kdobat')
+            ->where('resep_keluar_h.norm', $norm)
+            ->where('resep_keluar_h.tgl_selesai', '>=', now()->subDays(31)) // ✅ ambil 31 hari terakhir
+            ->orderBy('resep_keluar_h.tgl_selesai', 'desc')
+            ->get();
+        $hasil = [];
+        foreach ($kdobat as $key) {
+            $kandungan = $masters->where('kd_obat', $key)->first();
+            if ($kandungan->kandungan === '') {
+                // Cari resep berdasarkan kode obat
+                $resep = $allResep->where('kdobat', $key)->first();
+            } else {
+                // Cari resep berdasarkan kandungan yang sama
+                $resep = $allResep->where('kandungan', $kandungan->kandungan)->first();
+            }
+            $selisih = 0;
+            $total = 0;
+            if ($resep) {
+                $selisih = $resep->selisih;
+                $total = (float) $resep->konsumsi;
+                $hasil[] = [
+                    'kdobat' => $key,
+                    'kandungan' => $kandungan->kandungan,
+                    'status' => $selisih <= $total ? 1 : 2,
+                    'hasil' => $resep,
+                    'selisih' => $selisih,
+                    'total' => $total,
+                ];
+            } else {
+                $hasil[] = [
+                    'kdobat' => $key,
+                    'kandungan' => $kandungan->kandungan,
+                    'status' => 2,
+                    'hasil' => null,
+                    'selisih' => 0,
+                    'total' => 0,
+                ];
+            }
+        }
+
+
+
+        return [
+            'data' => $data,
+            'allResep' => $allResep,
+            'hasil' => $hasil,
+
+        ];
+    }
+    public static function cekSisaStokAlokasi($data, $depo)
+    {
+        $cukup = true;
+        $kdobat = collect($data)->pluck('kdobat')->toArray();
+        $allStok = Stokreal::select('kdobat', DB::raw('sum(jumlah) as jumlahstok'))
+            ->whereIn('kdobat', $kdobat)->where('kdruang', $depo)
+            ->where('jumlah', '>', 0)
+            ->orderBy('id')
+            ->groupBy('kdobat')
+            ->get();
+        $hasil = [];
+        foreach ($data as $key) {
+            $stok = $allStok->where('kdobat', $key['kdobat'])->first();
+            $jumlah = (float)$key['jumlah'] ?? (float)$key['jumlahobat'];
+            if ($stok) {
+                if ($stok->jumlahstok < $jumlah) {
+                    $cukup = false;
+                    $key['alokasi'] = $stok->jumlahstok;
+                } else {
+                    $key['alokasi'] = $stok->jumlahstok;
+                }
+            } else {
+                $key['alokasi'] = 0;
+            }
+            $hasil[] = [
+                'alokasi' => $key['alokasi'],
+                'kdobat' => $key['kdobat'],
+            ];
+        }
+        return [
+            'cukup' => $cukup,
+            'data' => $data,
+            'hasil' => $hasil,
+            'allStok' => $allStok,
+
+        ];
+    }
     public function resepSelesai(Request $request)
     {
         $data = Resepkeluarheder::find($request->id);
@@ -2238,6 +2722,10 @@ class EresepController extends Controller
      */
     public function newEresepobatkeluar(Request $request)
     {
+
+        return new JsonResponse([
+            'message' => 'fitur simpan sudah di tiakan diganti dengan simpan dan selesai. jika masih belum muncul tunggu kurang lebih 15 menit, kemudian tekan ctrl+shift+r. obat yang sudah terlajur di simpan tidak akan disimpan kembali'
+        ], 410);
         if ($request->jenisresep == 'Racikan') {
             $simpanrinci = Resepkeluarrinciracikan::with('mobat:kd_obat,nama_obat')
                 ->where('noresep', $request->noresep)
@@ -2451,6 +2939,7 @@ class EresepController extends Controller
                             'tiperacikan' => $request->tiperacikan,
                             'kdobat' => $request->kdobat,
                             'nopenerimaan' => $stokItem->nopenerimaan,
+                            'nobatch' => $stokItem->nobatch,
                             'jumlahdibutuhkan' => $request->jumlahdibutuhkan,
                             'jumlah' => $pengurangan, // Perbaikan: set jumlah sesuai pengurangan
                             'harga_beli' => $stokItem->harga,
@@ -2474,6 +2963,7 @@ class EresepController extends Controller
                             'kode50' => $request->kode50,
                             'uraian50' => $request->uraian50,
                             'nopenerimaan' => $stokItem->nopenerimaan,
+                            'nobatch' => $stokItem->nobatch,
                             'jumlah' => $pengurangan, // Perbaikan: set jumlah sesuai pengurangan
                             'harga_beli' => $stokItem->harga,
                             'hpp' => $harga,
@@ -2609,10 +3099,6 @@ class EresepController extends Controller
 
         $cekmaster = Mobatnew::select('kandungan')->where('kd_obat', $request->kodeobat)->first();
 
-        // $jumlahdosis = $request->jumlahdosis;
-        // $jumlah = $request->jumlah;
-        // $jmlhari = (int) $jumlah / $jumlahdosis;
-        // $total = (int) $jmlhari + (int) $jumlahstok;
         if ($cekmaster->kandungan === '') {
             $hasil = Resepkeluarheder::select(
                 'resep_keluar_h.noresep as noresep',
@@ -3126,7 +3612,7 @@ class EresepController extends Controller
                     $caristok = Stokreal::where('kdobat', $key['kdobat'])
                         ->where('kdruang', $request->kddepo)
                         ->where('jumlah', '>', 0)
-                        ->orderBy('tglexp')
+                        ->orderBy('tglpenerimaan')
                         ->get();
 
                     $index = 0;
@@ -3145,6 +3631,9 @@ class EresepController extends Controller
                             $sisax = $masuk - $sisa;
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $caristok[$index]->jumlah;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3166,6 +3655,9 @@ class EresepController extends Controller
                             $sisax = $sisa - $masuk;
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $masuk;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3199,7 +3691,7 @@ class EresepController extends Controller
                     unset($key['jumlahMinta']);
                     $caristok = Stokreal::where('kdobat', $key['kdobat'])->where('kdruang', $request->kddepo)
                         ->where('jumlah', '>', 0)
-                        ->orderBy('tglexp')
+                        ->orderBy('tglpenerimaan')
                         ->get();
 
                     $index = 0;
@@ -3217,6 +3709,9 @@ class EresepController extends Controller
                         if ($sisa < $masuk) {
                             $sisax = $masuk - $sisa;
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $caristok[$index]->jumlah;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3238,6 +3733,9 @@ class EresepController extends Controller
                             $sisax = $sisa - $masuk;
 
                             $key['nopenerimaan'] = $caristok[$index]->nopenerimaan;
+                            $key['nobatch'] = $caristok[$index]->nobatch;
+                            $key['id_rinci_penerimaan'] = $caristok[$index]->id_rinci_penerimaan;
+                            $key['id_stok'] = $caristok[$index]->id;
                             $key['jumlah'] = $masuk;
                             $key['harga_beli'] = $caristok[$index]->harga;
                             $key['hpp'] = $harga;
@@ -3254,12 +3752,8 @@ class EresepController extends Controller
 
                             $masuk = 0;
                         }
+                        $racik[] = $key;
                     }
-
-
-
-
-                    $racik[] = $key;
                 }
             }
             if (count($request->kirimResep) <= 0 && count($request->kirimRacik) <= 0) {

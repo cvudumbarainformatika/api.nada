@@ -439,10 +439,6 @@ class DepoController extends Controller
     }
     public function newterimadistribusi(Request $request)
     {
-        // $obatditerima = Mutasigudangkedepo::select('*', DB::raw('sum(jml) as jumlah'))
-        //     ->where('no_permintaan', $request->no_permintaan)
-        //     ->groupBy('no_permintaan', 'kd_obat', 'nopenerimaan')
-        //     ->get();
         try {
             DB::connection('farmasi')->beginTransaction();
             $obatditerima = Mutasigudangkedepo::select(
@@ -450,30 +446,37 @@ class DepoController extends Controller
                 'no_permintaan',
                 'kd_obat',
                 'nobatch',
-                'tglexp',
-                'tglpenerimaan',
-                'harga',
+                'id_rinci_penerimaan',
+                DB::raw('MAX(tglexp) as tglexp'),
+                DB::raw('MAX(tglpenerimaan) as tglpenerimaan'),
+                DB::raw('MAX(harga) as harga'),
                 DB::raw('sum(jml) as jumlah')
             )
                 ->where('no_permintaan', $request->no_permintaan)
                 ->groupBy(
                     'nopenerimaan',
                     'kd_obat',
-                    'harga',
+                    'id_rinci_penerimaan',
                 )
                 ->get();
             // return new JsonResponse(['message' => 'Permintaan Berhasil Diterima & Masuk Ke stok...!!!', 'data' => $obatditerima], 410);
             foreach ($obatditerima as $wew) {
                 $stoknya = Stokreal::lockForUpdate()
                     ->where('kdobat', $wew->kd_obat)
-                    ->where('nopenerimaan', $wew->nopenerimaan)
-                    ->where('harga', $wew->harga)
+                    // ->where('nopenerimaan', $wew->nopenerimaan)
+                    // ->where('nobatch', $wew->nobatch)
+                    ->where('id_rinci_penerimaan', $wew->id_rinci_penerimaan)
                     ->where('kdruang', $request->tujuan)
                     ->orderBy('tglpenerimaan', 'DESC')
                     ->first();
                 if ($stoknya) {
                     $total = (float)$wew->jumlah + (float)$stoknya->jumlah;
-                    $stoknya->update(['jumlah' => $total]);
+                    $stoknya->update([
+                        'jumlah' => $total,
+                        'harga' => $wew->harga,
+                        // 'tglexp' => $wew->tglexp,
+                        // 'tglpenerimaan' => $wew->tglpenerimaan,
+                    ]);
                 } else {
                     $create = Stokreal::create(
                         [
@@ -481,6 +484,7 @@ class DepoController extends Controller
                             'nodistribusi' => $wew->no_permintaan,
                             'kdobat' => $wew->kd_obat,
                             'nobatch' => $wew->nobatch,
+                            'id_rinci_penerimaan' => $wew->id_rinci_penerimaan,
                             'tglexp' => $wew->tglexp,
                             'tglpenerimaan' => $wew->tglpenerimaan,
                             'jumlah' => $wew->jumlah,
