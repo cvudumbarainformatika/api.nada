@@ -80,7 +80,7 @@ class MpegawaiController extends Controller
                 'templahir' => $validated['templahir'],
                 'tgllahir' => $validated['tgllahir'],
                 'jabatan' => $validated['jabatan'],
-                'aktif' => '1',
+                'aktif' => '',
                 'pass' => $validated['pass'],
                 'telp' => $validated['telp'],
                 'email' => $validated['email'],
