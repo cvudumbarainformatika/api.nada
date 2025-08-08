@@ -22,6 +22,7 @@ class ObatnewController extends Controller
     {
         $kdobat = $request->kd_obat ?? null;
         $validated = $request->validate([
+            'nama' => 'required',
             'nama_obat' => 'required',
             'barcode' => 'nullable',
             'merk' => 'nullable',
@@ -53,7 +54,8 @@ class ObatnewController extends Controller
             // 'kelasterapis' => 'nullable',
             // 'indikasis' => 'nullable',
         ], [
-            'nama_obat.required' => 'Nama Obat wajib diisi.'
+            'nama_obat.required' => 'Nama Obat wajib diisi.',
+            'nama.required' => 'Nama wajib diisi.'
         ]);
         try {
             DB::connection('farmasi')->beginTransaction();
