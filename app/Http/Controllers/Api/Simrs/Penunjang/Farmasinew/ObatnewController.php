@@ -24,7 +24,7 @@ class ObatnewController extends Controller
         $validated = $request->validate([
             'nama' => 'required',
             'nama_obat' => 'required',
-            'barcode' => 'nullable',
+            'barcode' => 'nullable|unique:farmasi.new_masterobat,barcode',
             'merk' => 'nullable',
             'kandungan' => 'nullable',
             'jenis_perbekalan' => 'nullable',
@@ -55,7 +55,8 @@ class ObatnewController extends Controller
             // 'indikasis' => 'nullable',
         ], [
             'nama_obat.required' => 'Nama Obat wajib diisi.',
-            'nama.required' => 'Nama wajib diisi.'
+            'nama.required' => 'Nama wajib diisi.',
+            'barcode.unique' => 'Barcode sudah ada.',
         ]);
         try {
             DB::connection('farmasi')->beginTransaction();
