@@ -13,6 +13,7 @@ Route::group([
     Route::post('/simpan', [RuanganRanapController::class, 'simpan']);
     Route::post('/hapus', [RuanganRanapController::class, 'hapus']);
     Route::get('/get-list', [RuanganRanapController::class, 'list']);
+    Route::post('/buka', [RuanganRanapController::class, 'buka']);
     // group
     Route::post('/group/simpan', [RuanganRanapController::class, 'simpanGroup']);
     Route::post('/group/hapus', [RuanganRanapController::class, 'hapusGroup']);

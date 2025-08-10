@@ -6,8 +6,10 @@ use App\Helpers\ResponseHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Simrs\Master\GroupRuangRanap;
 use App\Models\Simrs\Master\Mkamar;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Group;
 
 class RuanganRanapController extends Controller
@@ -26,8 +28,8 @@ class RuanganRanapController extends Controller
                     ->orWhere('rs2', 'Like', '%' . request('q') . '%')
                     ->orWhere('rs4', 'Like', '%' . request('q') . '%');
             })
-            ->orderBy($req['order_by'], $req['sort'])
-            ->whereNull('hiddens');
+            ->orderBy($req['order_by'], $req['sort']);
+        // ->whereNull('hiddens');
 
         $totalCount = (clone $query)->count();
         $data = $query->simplePaginate($req['per_page']);
@@ -59,47 +61,82 @@ class RuanganRanapController extends Controller
             'rs3.required' => 'Kelas Ruangan Wajib di isi',
             'rs5.required' => 'Nama Group Ruangan Wajib di isi',
         ]);
-        if (!$kode) {
-            $generatedKode = self::generateKodeRuangan($validated['groups'], $validated['rs3']);
-        } else {
-            $generatedKode = $kode;
+        try {
+            DB::beginTransaction();
+            if (!$kode) {
+                $generatedKode = self::generateKodeRuangan($validated['groups'], $validated['rs3']);
+                if ($generatedKode['status'] == '0') {
+                    return new JsonResponse($generatedKode);
+                }
+            } else {
+                $generatedKode = $kode;
+            }
+            $data = Mkamar::updateOrCreate(
+                [
+                    'rs1' => $generatedKode,
+                ],
+                [
+                    'rs2' => $validated['nama'],
+                    'rs3' => $validated['rs3'],
+                    'jenis' => $validated['rs3'],
+                    'rs4' => $validated['groups'],
+                    'groups' => $validated['groups'],
+                    'rs5' => $validated['rs5'],
+                    'groups_nama' => $validated['rs5'],
+                    'rs6' => $validated['rs6'] ?? null,
+                    'rs7' => $validated['rs7'] ?? 0,
+                    'bpjskdruang' => $validated['bpjskdruang'] ?? null,
+                    'bpjskdkelas' => $validated['bpjskdkelas'] ?? null,
+                    'kode_ruang' => $validated['kode_ruang'] ?? null,
+                ]
+            );
+            if (!$data) {
+                return new JsonResponse(['message' => 'Data gagal disimpan'], 400);
+            }
+            DB::commit();
+            return new JsonResponse(['data' => $data]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return new JsonResponse([
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ], 410);
         }
-        $data = Mkamar::updateOrCreate(
-            [
-                'rs1' => $generatedKode,
-            ],
-            [
-                'rs2' => $validated['nama'],
-                'rs3' => $validated['rs3'],
-                'jenis' => $validated['rs3'],
-                'rs4' => $validated['groups'],
-                'groups' => $validated['groups'],
-                'rs5' => $validated['rs5'],
-                'groups_nama' => $validated['rs5'],
-                'rs6' => $validated['rs6'] ?? null,
-                'rs7' => $validated['rs7'] ?? 0,
-                'bpjskdruang' => $validated['bpjskdruang'] ?? null,
-                'bpjskdkelas' => $validated['bpjskdkelas'] ?? null,
-                'kode_ruang' => $validated['kode_ruang'] ?? null,
-            ]
-        );
-        if (!$data) {
-            return new JsonResponse(['message' => 'Data gagal disimpan'], 400);
-        }
-        return new JsonResponse(['data' => $data]);
     }
     public static function generateKodeRuangan($groupKode, $rs3)
     {
         $baseKode = strtoupper($groupKode . $rs3);
         $kode = $baseKode;
         $counter = 1;
-
-        while (Mkamar::query()->where('rs1', $kode)->exists()) {
-            $kode = $baseKode . $counter;
-            $counter++;
+        // kalo exist dan ke hidden, maka promp untuk buka
+        $exist = Mkamar::query()->where('rs1', $kode)->exists();
+        $ada = Mkamar::where('rs1', $kode)->first();
+        if ($exist && $ada) {
+            if ($ada->hiddens == '1') {
+                return [
+                    'kode' => $ada,
+                    'message' => 'Ruangan di hidden, apakah kan dibuka?',
+                    'status' => '0',
+                ];
+            }
+            if ($ada->hiddens == null) {
+                return [
+                    'kode' => $ada,
+                    'message' => 'Ruangan sudah ada, silahkan cek kembali group dan kelas ruangan',
+                    'status' => '0',
+                ];
+            }
+        } else {
+            while ($exist) {
+                $kode = $baseKode . $counter;
+                $counter++;
+            }
+            return [
+                'kode' => $kode,
+                'status' => '1',
+            ];
         }
-
-        return $kode;
     }
     public function hapus(Request $request)
     {
@@ -117,6 +154,23 @@ class RuanganRanapController extends Controller
             return new JsonResponse(['message' => 'data gagal dihapus'], 500);
         }
         return new JsonResponse(['message' => 'data berhasil dihapus'], 200);
+    }
+    public function buka(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => 'required',
+        ], [
+            'id.required' => 'id Wajib di isi',
+        ]);
+        $data = Mkamar::find($validated['id']);
+        if (!$data) {
+            return new JsonResponse(['message' => 'data tidak ditemukan'], 500);
+        }
+        $del = $data->update(['hiddens' => null]);
+        if (!$del) {
+            return new JsonResponse(['message' => 'data gagal dibuka'], 500);
+        }
+        return new JsonResponse(['message' => 'data berhasil dibuka'], 200);
     }
     public function listGroup()
     {
