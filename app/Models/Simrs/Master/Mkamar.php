@@ -11,7 +11,7 @@ class Mkamar extends Model
     use HasFactory;
     protected $table      = 'rs24';
     protected $guarded = ['id'];
-    // protected $timestamp = false;
+    public $timestamps = false;
 
     public function kamars()
     {
@@ -21,6 +21,4 @@ class Mkamar extends Model
     {
         return $this->hasMany(Mkamar::class, 'groups', 'groups'); //'rs25', 'rs24'
     }
-
-    
 }

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 Route::group([
     'middleware' => 'auth:api',
     // 'middleware' => 'jwt.verify',
-    'prefix' => 'simrs/master/farmasi'
+    'prefix' => 'simrs/master/farmasi/obat'
 ], function () {
 
     Route::post('/simpan', [ObatnewController::class, 'simpan']);

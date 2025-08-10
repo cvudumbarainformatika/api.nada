@@ -65,6 +65,7 @@ class RuanganPoliController extends Controller
             'rs6' => 'nullable',
             'rs7' => 'nullable',
             'panggil_antrian' => 'nullable',
+            'kode_ruang' => 'nullable', // maping dengan ruangan yang ada di master ruangan kepegx.ruangs
         ], [
             'rs1.required' => 'Kode Poliklinik Wajib Diisi',
             'rs1.unique' => 'Kode Poliklinik Sudah Ada',
