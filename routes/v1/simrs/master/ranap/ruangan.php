@@ -18,4 +18,5 @@ Route::group([
     Route::post('/group/simpan', [RuanganRanapController::class, 'simpanGroup']);
     Route::post('/group/hapus', [RuanganRanapController::class, 'hapusGroup']);
     Route::get('/group/get-list', [RuanganRanapController::class, 'listGroup']);
+    Route::post('/group/buka', [RuanganRanapController::class, 'bukaGroup']);
 });

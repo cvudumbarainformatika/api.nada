@@ -21,6 +21,7 @@ class RuanganRanapController extends Controller
             'sort' => request('sort', 'asc'),
             'page' => request('page', 1),
             'per_page' => request('per_page', 10),
+            'tampil' => request('tampil', 'semua'), // semua. aktif. tidak aktif
         ];
         $query = Mkamar::query()
             ->where(function ($list) {
@@ -28,8 +29,14 @@ class RuanganRanapController extends Controller
                     ->orWhere('rs2', 'Like', '%' . request('q') . '%')
                     ->orWhere('rs4', 'Like', '%' . request('q') . '%');
             })
-            ->orderBy($req['order_by'], $req['sort']);
-        // ->whereNull('hiddens');
+            ->orderBy($req['order_by'], $req['sort'])
+            ->when($req['tampil'], function ($q) use ($req) {
+                if ($req['tampil'] == 'aktif') {
+                    $q->whereNull('hiddens');
+                } else if ($req['tampil'] == 'tidak aktif') {
+                    $q->whereNotNull('hiddens');
+                }
+            });
 
         $totalCount = (clone $query)->count();
         $data = $query->simplePaginate($req['per_page']);
@@ -114,9 +121,14 @@ class RuanganRanapController extends Controller
         $ada = Mkamar::where('rs1', $kode)->first();
         if ($exist && $ada) {
             if ($ada->hiddens == '1') {
+                $msg = 'Ruangan di hidden, apakah kan dibuka?';
+                $groupKode = GroupRuangRanap::where('kode', $ada->rs4)->where('hiddens', '1')->first();
+                if ($groupKode) {
+                    $msg = 'Ruangan di hidden, apakah kan dibuka?. dan Group Ruangan juga di kunci, silahkan buka dari group ruangan untuk membuka semua ruang ranap group ini';
+                }
                 return [
                     'kode' => $ada,
-                    'message' => 'Ruangan di hidden, apakah kan dibuka?',
+                    'message' => $msg,
                     'status' => '0',
                 ];
             }
@@ -147,11 +159,11 @@ class RuanganRanapController extends Controller
         ]);
         $data = Mkamar::find($validated['id']);
         if (!$data) {
-            return new JsonResponse(['message' => 'data tidak ditemukan'], 500);
+            return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
         }
         $del = $data->update(['hiddens' => '1']);
         if (!$del) {
-            return new JsonResponse(['message' => 'data gagal dihapus'], 500);
+            return new JsonResponse(['message' => 'data gagal dihapus'], 410);
         }
         return new JsonResponse(['message' => 'data berhasil dihapus'], 200);
     }
@@ -164,14 +176,15 @@ class RuanganRanapController extends Controller
         ]);
         $data = Mkamar::find($validated['id']);
         if (!$data) {
-            return new JsonResponse(['message' => 'data tidak ditemukan'], 500);
+            return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
         }
         $del = $data->update(['hiddens' => null]);
         if (!$del) {
-            return new JsonResponse(['message' => 'data gagal dibuka'], 500);
+            return new JsonResponse(['message' => 'data gagal dibuka'], 410);
         }
         return new JsonResponse(['message' => 'data berhasil dibuka'], 200);
     }
+
     public function listGroup()
     {
         $req = [
@@ -179,6 +192,7 @@ class RuanganRanapController extends Controller
             'sort' => request('sort', 'asc'),
             'page' => request('page', 1),
             'per_page' => request('per_page', 10),
+            'tampil' => request('tampil', 'semua'), // semua. aktif. tidak aktif
         ];
         $query = GroupRuangRanap::query()
             ->where(function ($list) {
@@ -186,7 +200,14 @@ class RuanganRanapController extends Controller
                     ->orWhere('nama', 'Like', '%' . request('q') . '%');
             })
             ->orderBy($req['order_by'], $req['sort'])
-            ->whereNull('hidden');
+            ->when($req['tampil'], function ($q) use ($req) {
+                if ($req['tampil'] == 'aktif') {
+                    $q->whereNull('hidden');
+                } else if ($req['tampil'] == 'tidak aktif') {
+                    $q->whereNotNull('hidden');
+                }
+            });
+        // ->whereNull('hidden');
 
         $totalCount = (clone $query)->count();
         $data = $query->simplePaginate($req['per_page']);
@@ -265,12 +286,41 @@ class RuanganRanapController extends Controller
         ]);
         $data = GroupRuangRanap::find($validated['id']);
         if (!$data) {
-            return new JsonResponse(['message' => 'data tidak ditemukan'], 500);
+            return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
+        }
+        $ruanganGroup = Mkamar::where('rs4', $data->kode)->get();
+        if (count($ruanganGroup) > 0) {
+            foreach ($ruanganGroup as $key) {
+                $key->update(['hiddens' => '1']);
+            }
         }
         $del = $data->update(['hidden' => '1']);
         if (!$del) {
-            return new JsonResponse(['message' => 'data gagal dihapus'], 500);
+            return new JsonResponse(['message' => 'data gagal dihapus'], 410);
         }
         return new JsonResponse(['message' => 'data berhasil dihapus'], 200);
+    }
+    public function bukaGroup(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => 'required',
+        ], [
+            'id.required' => 'id Wajib di isi',
+        ]);
+        $data = GroupRuangRanap::find($validated['id']);
+        if (!$data) {
+            return new JsonResponse(['message' => 'data tidak ditemukan'], 410);
+        }
+        $ruanganGroup = Mkamar::where('rs4', $data->kode)->get();
+        if (count($ruanganGroup) > 0) {
+            foreach ($ruanganGroup as $key) {
+                $key->update(['hiddens' => null]);
+            }
+        }
+        $del = $data->update(['hidden' => null]);
+        if (!$del) {
+            return new JsonResponse(['message' => 'data gagal dibuka'], 410);
+        }
+        return new JsonResponse(['message' => 'data berhasil dibuka'], 200);
     }
 }
