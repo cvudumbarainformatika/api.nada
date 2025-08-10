@@ -77,7 +77,7 @@ class RuanganRanapController extends Controller
                 'rs5' => $validated['rs5'],
                 'groups_nama' => $validated['rs5'],
                 'rs6' => $validated['rs6'] ?? null,
-                'rs7' => $validated['rs7'] ?? null,
+                'rs7' => $validated['rs7'] ?? 0,
                 'bpjskdruang' => $validated['bpjskdruang'] ?? null,
                 'bpjskdkelas' => $validated['bpjskdkelas'] ?? null,
                 'kode_ruang' => $validated['kode_ruang'] ?? null,
