@@ -1399,7 +1399,7 @@ class PersiapanOperasiController extends Controller
                                 $dfthrg = Stokreal::find($distItem->id_stok);
                                 $hargaBeli = $dfthrg->harga ?? 0;
                             }
-                            $jmlResep = $detItem->jumlah_resep;
+                            $jmlResep = $distItem->jumlah;
                             $ada = Resepkeluarrinci::where('noresep', $detItem->noresep)->where('kdobat', $distItem->kd_obat)->first();
                             if (!$ada) {
                                 $rin = [
