@@ -23,7 +23,7 @@ class Stokreal extends Model
     protected $guarded = ['id'];
     protected $connection = 'farmasi';
 
-    public function getHargaAttribute()
+    public function getHargaMaxAttribute()
     {
         $kdobat = $this->kdobat;
         $daftar = DaftarHarga::selectRaw('max(harga) as harga')

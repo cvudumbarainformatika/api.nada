@@ -422,7 +422,7 @@ class StokrealController extends Controller
             ->orderBy('new_masterobat.nama_obat', 'ASC')
             ->orderBy('stokreal.tglexp', 'ASC')
             ->paginate(request('per_page'));
-        $stokreal->append('harga');
+        $stokreal->append('harga_max');
         $datastok = $stokreal->map(function ($xxx) use ($kdruang) {
             $stolreal = $xxx->total;
             $jumlahper = $kdruang === 'Gd-04010103' ? $xxx['persiapanrinci'][0]->jumlah ?? 0 : 0;
@@ -432,6 +432,7 @@ class StokrealController extends Controller
             $keluarRa = $xxx['oneobatkelracikan']->jumlah ?? 0;
             $permintaanobatrinci = $xxx['onepermintaandeporinci']->jumlah_minta ?? 0; // mutasi antar depo
             $stokalokasi = (float) $stolreal - (float) $permintaanobatrinci - (float) $jumlahtrans - (float) $jumlahtransx - (int)$jumlahper + (float)$keluar + (float)$keluarRa;
+            $xxx['harga'] = $xxx['harga_max'];
             $xxx['stokalokasi'] = $stokalokasi;
             $xxx['permintaantotal'] = $permintaanobatrinci;
             $xxx['lain'] = [
